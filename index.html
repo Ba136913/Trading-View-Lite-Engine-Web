@@ -17,60 +17,24 @@
             --accent-blue: #2962ff;
         }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Navbar & Search */
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 30px;
-            background-color: var(--card-bg);
-            border-bottom: 1px solid var(--border-color);
-        }
-        .logo { font-size: 22px; font-weight: 800; cursor: pointer; color: white; text-decoration: none;}
-        .search-box {
-            display: flex;
-            gap: 10px;
-        }
-        .search-input {
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-dark);
-            color: white;
-            width: 300px;
-            outline: none;
-        }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; }
+        
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+        .logo { font-size: 22px; font-weight: 800; cursor: pointer; color: white; }
+        .search-box { display: flex; gap: 10px; position: relative;}
+        .search-input { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; width: 300px; outline: none; text-transform: uppercase;}
         .search-input:focus { border-color: var(--accent-blue); }
-        .btn {
-            background: var(--accent-blue);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn:hover { background: #1e4bd8; }
-
+        .btn { background: var(--accent-blue); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        
         .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
-
-        /* VIEWS (SPA Routing) */
         #scanner-view { display: block; }
         #analyzer-view { display: none; }
         .loading { text-align: center; padding: 100px; font-size: 20px; color: var(--text-muted); display: none;}
 
-        /* Scanner Tables */
+        .section-title { margin-top: 40px; margin-bottom: 20px; font-size: 24px; font-weight: 800; color: white; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .card { background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
-        .card-header { padding: 20px; border-bottom: 1px solid var(--border-color); font-size: 18px; font-weight: 800; }
+        .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-size: 18px; font-weight: 800; }
         table { width: 100%; border-collapse: collapse; }
         th { color: var(--text-muted); font-size: 13px; text-align: left; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
         td { padding: 15px 20px; border-bottom: 1px solid #1a1e23; }
@@ -79,36 +43,20 @@
         .pct-green { color: var(--bull-green); font-weight: bold; }
         .pct-red { color: var(--bear-red); font-weight: bold; }
 
-        /* Analyzer Terminal */
         .terminal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
         .stock-title { font-size: 36px; font-weight: 900; margin: 0; }
         .stock-price { font-size: 28px; font-weight: bold; }
-
-        /* AI Prediction Box */
-        .ai-box {
-            background: linear-gradient(145deg, rgba(41, 98, 255, 0.1), rgba(9, 11, 14, 1));
-            border: 1px solid rgba(41, 98, 255, 0.3);
-            border-left: 5px solid var(--accent-blue);
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            line-height: 1.6;
-            font-size: 16px;
-        }
+        .ai-box { background: linear-gradient(145deg, rgba(41,98,255,0.1), rgba(9,11,14,1)); border: 1px solid rgba(41,98,255,0.3); border-left: 5px solid var(--accent-blue); padding: 25px; border-radius: 12px; margin-bottom: 25px; line-height: 1.6; }
         .ai-title { font-weight: 800; color: var(--accent-blue); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;}
-
-        /* Chart Area */
+        
         .chart-controls { display: flex; gap: 10px; margin-bottom: 15px; }
         .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 15px; border-radius: 6px; cursor: pointer; }
         .indicator-btn.active { background: var(--card-bg); color: white; border-color: var(--text-muted); }
         #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); }
-
-        /* Indicators Widget */
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 25px; }
         .stat-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; text-align: center; }
         .stat-label { color: var(--text-muted); font-size: 12px; margin-bottom: 5px; }
         .stat-value { font-size: 18px; font-weight: bold; }
-
     </style>
 </head>
 <body>
@@ -116,24 +64,42 @@
     <div class="navbar">
         <div class="logo" onclick="goHome()">⚡ CHADS TERMINAL</div>
         <div class="search-box">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search NSE Stock (e.g. ZOMATO, BHEL)..." onkeypress="handleSearch(event)">
+            <input list="stock-list" type="text" id="searchInput" class="search-input" placeholder="Search F&O Stock..." onkeypress="handleSearch(event)">
+            <datalist id="stock-list">
+                <option value="RELIANCE"><option value="HDFCBANK"><option value="TCS"><option value="INFY"><option value="ICICIBANK">
+                <option value="ZOMATO"><option value="BHEL"><option value="TATAMOTORS"><option value="SUZLON"><option value="SBIN">
+                </datalist>
             <button class="btn" onclick="triggerSearch()">Analyze</button>
         </div>
     </div>
 
     <div class="container">
-        
         <div id="loading" class="loading">
             <h2>🧠 AI Engine Processing...</h2>
-            <p>Fetching institutional data and calculating technicals.</p>
+            <p>Scanning data and calculating technicals.</p>
         </div>
 
         <div id="scanner-view">
-            <div style="margin-bottom: 30px;">
-                <h1 style="margin: 0;">Market Radar</h1>
-                <p style="color: var(--text-muted);">Live Breakouts and Reversals from F&O Market. Click any stock to Deep Analyze.</p>
-            </div>
             
+            <h2 class="section-title">🔥 Market Heat (Top Movers)</h2>
+            <div class="grid-container">
+                <div class="card">
+                    <div class="card-header" style="color: var(--bull-green);">🚀 Top Gainers</div>
+                    <table>
+                        <thead><tr><th>SYMBOL</th><th>PRICE</th><th>CHANGE</th></tr></thead>
+                        <tbody id="gainer-body"></tbody>
+                    </table>
+                </div>
+                <div class="card">
+                    <div class="card-header" style="color: var(--bear-red);">🩸 Top Losers</div>
+                    <table>
+                        <thead><tr><th>SYMBOL</th><th>PRICE</th><th>CHANGE</th></tr></thead>
+                        <tbody id="loser-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <h2 class="section-title">📡 Algo Setups (Breakouts & Reversals)</h2>
             <div class="grid-container">
                 <div class="card">
                     <div class="card-header">🕯️ Reversal Radar</div>
@@ -143,29 +109,27 @@
                     </table>
                 </div>
                 <div class="card">
-                    <div class="card-header">🚀 Channel Breakout</div>
+                    <div class="card-header">📈 Channel Breakout</div>
                     <table>
                         <thead><tr><th>SYMBOL</th><th>CHANGE</th><th>SIGNAL</th></tr></thead>
                         <tbody id="bo-body"></tbody>
                     </table>
                 </div>
             </div>
+
         </div>
 
         <div id="analyzer-view">
-            <button class="btn" style="background:var(--card-bg); border:1px solid var(--border-color); margin-bottom: 20px;" onclick="goHome()">← Back to Radar</button>
+            <button class="btn" style="background:var(--card-bg); border:1px solid var(--border-color); margin-bottom: 20px;" onclick="goHome()">← Back to Dashboard</button>
             
             <div class="terminal-header">
-                <div>
-                    <h1 class="stock-title" id="stockName">--</h1>
-                    <div style="color: var(--text-muted);">NSE EQUITY</div>
-                </div>
+                <div><h1 class="stock-title" id="stockName">--</h1><div style="color: var(--text-muted);">NSE EQUITY</div></div>
                 <div class="stock-price" id="stockPrice">₹--</div>
             </div>
 
             <div class="ai-box">
                 <div class="ai-title">🤖 GEMINI QUANT PREDICTION</div>
-                <div id="aiText">Analyzing chart patterns and momentum...</div>
+                <div id="aiText">Analyzing chart patterns...</div>
             </div>
 
             <div class="chart-controls">
@@ -175,37 +139,20 @@
             <div id="tv-chart"></div>
 
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">RSI (14)</div>
-                    <div class="stat-value" id="valRSI">--</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">MACD</div>
-                    <div class="stat-value" id="valMACD">--</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">EMA 20</div>
-                    <div class="stat-value" id="valEMA20">--</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">EMA 50</div>
-                    <div class="stat-value" id="valEMA50">--</div>
-                </div>
+                <div class="stat-card"><div class="stat-label">RSI (14)</div><div class="stat-value" id="valRSI">--</div></div>
+                <div class="stat-card"><div class="stat-label">MACD</div><div class="stat-value" id="valMACD">--</div></div>
+                <div class="stat-card"><div class="stat-label">EMA 20</div><div class="stat-value" id="valEMA20">--</div></div>
+                <div class="stat-card"><div class="stat-label">EMA 50</div><div class="stat-value" id="valEMA50">--</div></div>
             </div>
         </div>
-
     </div>
 
     <script>
-        // --- API CONFIGURATION ---
+        // TERA EXACT RENDER URL YAHAN HONA CHAHIYE
         const API_BASE_URL = "https://channel-bo-reversal-radar.onrender.com/api"; 
         
-        let chart = null;
-        let candleSeries = null;
-        let ema20Series = null;
-        let ema50Series = null;
+        let chart = null, candleSeries = null, ema20Series = null, ema50Series = null;
 
-        // --- NAVIGATION LOGIC ---
         function goHome() {
             document.getElementById('scanner-view').style.display = 'block';
             document.getElementById('analyzer-view').style.display = 'none';
@@ -216,44 +163,49 @@
         function handleSearch(e) { if(e.key === 'Enter') triggerSearch(); }
         
         function triggerSearch() {
-            const val = document.getElementById('searchInput').value.trim();
-            if(val) openAnalyzer(val.toUpperCase());
+            // Smart input formatting: Uppercase and remove spaces automatically
+            let val = document.getElementById('searchInput').value.trim().toUpperCase().replace(/\s/g, '');
+            if(val) openAnalyzer(val);
         }
 
-        // --- SCANNER LOGIC ---
         async function fetchScanner() {
             try {
                 const res = await fetch(`${API_BASE_URL}/swing-scanner`);
                 const json = await res.json();
                 if(json.status === 'success') {
-                    renderTable('rev-body', json.data.reversals);
-                    renderTable('bo-body', json.data.breakouts);
+                    renderTable('gainer-body', json.data.top_gainers, true);
+                    renderTable('loser-body', json.data.top_losers, true);
+                    renderTable('rev-body', json.data.reversals, false);
+                    renderTable('bo-body', json.data.breakouts, false);
                 }
             } catch (err) { console.error("Scanner Error", err); }
         }
 
-        function renderTable(id, data) {
+        function renderTable(id, data, isMovers) {
             let html = "";
-            if(data.length === 0) { html = "<tr><td colspan='3'>No setups found today.</td></tr>"; }
+            if(data.length === 0) { html = `<tr><td colspan='3'>No data found.</td></tr>`; }
             else {
                 data.forEach(item => {
                     let color = item.Percent > 0 ? "pct-green" : "pct-red";
-                    // Using onclick to redirect to Analyzer View
+                    let sign = item.Percent > 0 ? '+' : '';
+                    let thirdCol = isMovers ? `₹${item.Price}` : `<span style="background:${item.Signal==='BULL'?'rgba(8,153,129,0.2)':'rgba(242,54,69,0.2)'}; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold; color:${item.Signal==='BULL'?'var(--bull-green)':'var(--bear-red)'}">${item.Signal}</span>`;
+                    
                     html += `<tr class="clickable-row" onclick="openAnalyzer('${item.Symbol}')">
                         <td style="font-weight:bold;">${item.Symbol}</td>
-                        <td class="${color}">${item.Percent > 0 ? '+' : ''}${item.Percent}%</td>
-                        <td><span style="background:${item.Signal==='BULL'?'rgba(8,153,129,0.2)':'rgba(242,54,69,0.2)'}; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold; color:${item.Signal==='BULL'?'var(--bull-green)':'var(--bear-red)'}">${item.Signal}</span></td>
+                        <td class="${color}">${sign}${item.Percent}%</td>
+                        <td>${thirdCol}</td>
                     </tr>`;
                 });
             }
             document.getElementById(id).innerHTML = html;
         }
 
-        // --- AI ANALYZER LOGIC ---
         async function openAnalyzer(symbol) {
             document.getElementById('scanner-view').style.display = 'none';
             document.getElementById('analyzer-view').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
+            // Clear search bar
+            document.getElementById('searchInput').value = ''; 
 
             try {
                 const res = await fetch(`${API_BASE_URL}/analyze/${symbol}`);
@@ -276,54 +228,35 @@
 
                     renderTradingViewChart(data.historical_chart_data);
                 } else {
-                    alert("Data not found for " + symbol);
+                    alert("⚠️ Data not found for: " + symbol + "\nCheck spelling or try F&O symbols only.");
                     goHome();
                 }
             } catch (err) {
-                alert("Server Connection Error.");
+                alert("Server Error.");
                 goHome();
             }
         }
 
-        // --- TRADINGVIEW LIGHTWEIGHT CHARTS LOGIC ---
-        function renderTradingViewChart(historicalData) {
+        function renderTradingViewChart(data) {
             const chartDom = document.getElementById('tv-chart');
-            chartDom.innerHTML = ""; // Clear old chart
-            
-            chart = LightweightCharts.createChart(chartDom, {
-                layout: { background: { type: 'solid', color: '#121417' }, textColor: '#d1d4dc', },
-                grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' }, },
-                timeScale: { borderColor: '#2b2b43', rightOffset: 5, },
-            });
-
-            candleSeries = chart.addCandlestickSeries({
-                upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645',
-            });
-            candleSeries.setData(historicalData);
-
-            // EMA Lines Overlay
+            chartDom.innerHTML = ""; 
+            chart = LightweightCharts.createChart(chartDom, { layout: { background: { type: 'solid', color: '#121417' }, textColor: '#d1d4dc', }, grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' }, }, timeScale: { borderColor: '#2b2b43', rightOffset: 5, }, });
+            candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
+            candleSeries.setData(data);
             ema20Series = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, title: 'EMA 20' });
-            const ema20Data = historicalData.filter(d => d.ema20 !== null).map(d => ({ time: d.time, value: d.ema20 }));
-            ema20Series.setData(ema20Data);
-
+            ema20Series.setData(data.filter(d => d.ema20).map(d => ({ time: d.time, value: d.ema20 })));
             ema50Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 2, title: 'EMA 50' });
-            const ema50Data = historicalData.filter(d => d.ema50 !== null).map(d => ({ time: d.time, value: d.ema50 }));
-            ema50Series.setData(ema50Data);
-
+            ema50Series.setData(data.filter(d => d.ema50).map(d => ({ time: d.time, value: d.ema50 })));
             chart.timeScale().fitContent();
         }
 
-        function toggleEMA(period, btn) {
+        function toggleEMA(p, btn) {
             btn.classList.toggle('active');
-            const isActive = btn.classList.contains('active');
-            if(period === 20) {
-                ema20Series.applyOptions({ visible: isActive });
-            } else if(period === 50) {
-                ema50Series.applyOptions({ visible: isActive });
-            }
+            let isAct = btn.classList.contains('active');
+            if(p === 20) ema20Series.applyOptions({ visible: isAct });
+            if(p === 50) ema50Series.applyOptions({ visible: isAct });
         }
 
-        // Init App
         goHome();
     </script>
 </body>
