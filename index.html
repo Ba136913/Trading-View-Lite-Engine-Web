@@ -2,239 +2,124 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chads AI Trading Terminal</title>
+    <title>Matrix 1.0 Terminal</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <style>
-        :root {
-            --bg-dark: #090b0e; --card-bg: #121417; --text-main: #f1f5f9; --text-muted: #6b7280;
-            --bull-green: #089981; --bear-red: #f23645; --border-color: #26292e; --accent-blue: #2962ff;
-        }
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; }
-        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); }
-        .logo { font-size: 22px; font-weight: 800; cursor: pointer; color: white; }
-        .search-box { display: flex; gap: 10px; position: relative;}
-        .search-input { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; width: 300px; outline: none; text-transform: uppercase;}
-        .search-input:focus { border-color: var(--accent-blue); }
-        .btn { background: var(--accent-blue); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
-        #scanner-view { display: block; } #analyzer-view { display: none; }
-        .loading { text-align: center; padding: 100px; font-size: 20px; color: var(--text-muted); display: none;}
-        .section-title { margin-top: 20px; margin-bottom: 20px; font-size: 24px; font-weight: 800; color: white; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
-        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        .card { background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
-        .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-size: 18px; font-weight: 800; }
-        table { width: 100%; border-collapse: collapse; }
-        th { color: var(--text-muted); font-size: 13px; text-align: left; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
-        td { padding: 15px 20px; border-bottom: 1px solid #1a1e23; }
-        .clickable-row { cursor: pointer; transition: 0.2s; }
-        .clickable-row:hover { background-color: rgba(41, 98, 255, 0.1); }
-        .pct-green { color: var(--bull-green); font-weight: bold; } .pct-red { color: var(--bear-red); font-weight: bold; }
-        .terminal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
-        .stock-title { font-size: 36px; font-weight: 900; margin: 0; } .stock-price { font-size: 28px; font-weight: bold; }
-        .ai-box { background: linear-gradient(145deg, rgba(41,98,255,0.1), rgba(9,11,14,1)); border: 1px solid rgba(41,98,255,0.3); border-left: 5px solid var(--accent-blue); padding: 25px; border-radius: 12px; margin-bottom: 25px; line-height: 1.6; }
-        .ai-title { font-weight: 800; color: var(--accent-blue); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;}
-        .chart-controls { display: flex; gap: 10px; margin-bottom: 15px; }
-        .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 15px; border-radius: 6px; cursor: pointer; }
-        .indicator-btn.active { background: var(--card-bg); color: white; border-color: var(--text-muted); }
-        #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); }
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 25px; }
-        .stat-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; text-align: center; }
-        .stat-label { color: var(--text-muted); font-size: 12px; margin-bottom: 5px; } .stat-value { font-size: 18px; font-weight: bold; }
+        :root { --bg: #090b0e; --card: #121417; --blue: #2962ff; --green: #089981; --red: #f23645; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; }
+        .container { padding: 20px; max-width: 1200px; margin: auto; }
+        #tv-chart { height: 500px; background: var(--card); border-radius: 10px; border: 1px solid #26292e; }
+        .controls { margin-bottom: 15px; display: flex; gap: 10px; }
+        .btn { background: #26292e; color: #6b7280; border: 1px solid #333; padding: 8px 15px; cursor: pointer; border-radius: 5px; }
+        .btn.active { background: var(--blue); color: white; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; background: var(--card); }
+        th, td { padding: 12px; border-bottom: 1px solid #26292e; text-align: left; cursor: pointer; }
+        .up { color: var(--green); } .down { color: var(--red); }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="logo" onclick="goHome()">⚡ CHADS TERMINAL</div>
-        <div class="search-box">
-            <input list="stock-list" type="text" id="searchInput" class="search-input" placeholder="Search F&O Stock..." onkeypress="handleSearch(event)">
-            <datalist id="stock-list">
-                <option value="RELIANCE"><option value="HDFCBANK"><option value="TCS"><option value="INFY"><option value="ICICIBANK">
-                <option value="ZOMATO"><option value="BHEL"><option value="TATAMOTORS"><option value="SUZLON"><option value="SBIN">
-            </datalist>
-            <button class="btn" onclick="triggerSearch()">Analyze</button>
-        </div>
-    </div>
-
     <div class="container">
-        <div id="loading" class="loading">
-            <h2>🧠 AI Engine Processing...</h2>
-            <p>Fetching institutional data and calculating technicals.</p>
-        </div>
-
+        <h1 onclick="location.reload()">⚡ MATRIX 1.0</h1>
+        
         <div id="scanner-view">
-            <h2 class="section-title">🔥 Market Heat (Top F&O Movers)</h2>
-            <div class="grid-container">
-                <div class="card">
-                    <div class="card-header" style="color: var(--bull-green);">🚀 Top Gainers</div>
-                    <table>
-                        <thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead>
-                        <tbody id="gainer-body"></tbody>
-                    </table>
-                </div>
-                <div class="card">
-                    <div class="card-header" style="color: var(--bear-red);">🩸 Top Losers</div>
-                    <table>
-                        <thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead>
-                        <tbody id="loser-body"></tbody>
-                    </table>
-                </div>
+            <div class="grid">
+                <div><h3>🚀 Gainers</h3><table id="g-table"></table></div>
+                <div><h3>🩸 Losers</h3><table id="l-table"></table></div>
             </div>
         </div>
 
-        <div id="analyzer-view">
-            <button class="btn" style="background:var(--card-bg); border:1px solid var(--border-color); margin-bottom: 20px;" onclick="goHome()">← Back to Dashboard</button>
-            <div class="terminal-header">
-                <div><h1 class="stock-title" id="stockName">--</h1><div style="color: var(--text-muted);">NSE EQUITY</div></div>
-                <div class="stock-price" id="stockPrice">₹--</div>
-            </div>
-            <div class="ai-box">
-                <div class="ai-title">🤖 GEMINI QUANT PREDICTION</div>
-                <div id="aiText">Analyzing chart patterns...</div>
-            </div>
-            <div class="chart-controls">
-                <button class="indicator-btn active" onclick="toggleEMA(20, this)">EMA 20</button>
-                <button class="indicator-btn active" onclick="toggleEMA(50, this)">EMA 50</button>
+        <div id="analyzer-view" style="display:none;">
+            <button class="btn" onclick="location.reload()">← Back</button>
+            <h2 id="stk-name">--</h2>
+            <div class="controls">
+                <button id="btnST3" class="btn" onclick="toggleST('st3')">ST 10:3</button>
+                <button id="btnST1" class="btn" onclick="toggleST('st1')">ST 10:1</button>
+                <button id="btnPivot" class="btn" onclick="togglePivots()">Pivots</button>
             </div>
             <div id="tv-chart"></div>
-            <div class="stats-grid">
-                <div class="stat-card"><div class="stat-label">RSI (14)</div><div class="stat-value" id="valRSI">--</div></div>
-                <div class="stat-card"><div class="stat-label">MACD</div><div class="stat-value" id="valMACD">--</div></div>
-                <div class="stat-card"><div class="stat-label">EMA 20</div><div class="stat-value" id="valEMA20">--</div></div>
-                <div class="stat-card"><div class="stat-label">EMA 50</div><div class="stat-value" id="valEMA50">--</div></div>
-            </div>
         </div>
     </div>
 
     <script>
-        const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
-        let chart = null, candleSeries = null, ema20Series = null, ema50Series = null;
-
-        function goHome() {
-            document.getElementById('scanner-view').style.display = 'block';
-            document.getElementById('analyzer-view').style.display = 'none';
-            document.getElementById('loading').style.display = 'none';
-            fetchScanner();
-        }
-
-        function handleSearch(e) { if(e.key === 'Enter') triggerSearch(); }
-        
-        function triggerSearch() {
-            let val = document.getElementById('searchInput').value.trim().toUpperCase().replace(/\s/g, '');
-            if(val) openAnalyzer(val);
-        }
+        const API = "http://localhost:10000/api"; // Render pe push karne ke baad change karna
+        let chart, candleSeries, lineST3, lineST1, pLines = [];
+        let rawData = [];
 
         async function fetchScanner() {
-            try {
-                const res = await fetch(`${API_BASE_URL}/swing-scanner`);
-                const json = await res.json();
-                if(json.status === 'success') {
-                    renderTable('gainer-body', json.data.top_gainers);
-                    renderTable('loser-body', json.data.top_losers);
-                }
-            } catch (err) { console.error("Scanner Error", err); }
+            const res = await fetch(`${API}/swing-scanner`);
+            const json = await res.json();
+            fillTable('g-table', json.data.top_gainers);
+            fillTable('l-table', json.data.top_losers);
         }
 
-        function renderTable(id, data) {
-            let html = "";
-            if(data.length === 0) { html = `<tr><td colspan='3'>No data found.</td></tr>`; }
-            else {
-                data.forEach(item => {
-                    let color = item.Percent > 0 ? "pct-green" : "pct-red";
-                    let sign = item.Percent > 0 ? '+' : '';
-                    html += `<tr class="clickable-row" onclick="openAnalyzer('${item.Symbol}')">
-                        <td style="font-weight:bold;">${item.Symbol}</td>
-                        <td style="color:var(--text-muted);">₹${item.Price}</td>
-                        <td class="${color}">${sign}${item.Percent}%</td>
-                    </tr>`;
-                });
-            }
+        function fillTable(id, data) {
+            let html = `<tr><th>Symbol</th><th>Price</th><th>%</th></tr>`;
+            data.forEach(s => {
+                html += `<tr onclick="openAnalyzer('${s.Symbol}')"><td>${s.Symbol}</td><td>${s.Price}</td><td class="${s.Percent>0?'up':'down'}">${s.Percent}%</td></tr>`;
+            });
             document.getElementById(id).innerHTML = html;
         }
 
         async function openAnalyzer(symbol) {
             document.getElementById('scanner-view').style.display = 'none';
-            document.getElementById('analyzer-view').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('searchInput').value = ''; 
-
-            try {
-                // 🔥 FIX: Encode URI (For symbols like M&M)
-                const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(symbol)}`);
-                const json = await res.json();
-
-                if(json.status === 'success') {
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('analyzer-view').style.display = 'block';
-                    
-                    const data = json.data;
-                    document.getElementById('stockName').innerText = data.symbol;
-                    document.getElementById('stockPrice').innerText = "₹" + data.latest_close;
-                    document.getElementById('aiText').innerText = data.ai_prediction;
-                    
-                    document.getElementById('valRSI').innerText = data.indicators.RSI_14;
-                    document.getElementById('valRSI').style.color = data.indicators.RSI_14 > 70 ? 'var(--bear-red)' : (data.indicators.RSI_14 < 30 ? 'var(--bull-green)' : 'white');
-                    document.getElementById('valMACD').innerText = data.indicators.MACD;
-                    document.getElementById('valEMA20').innerText = data.indicators.EMA_20;
-                    document.getElementById('valEMA50').innerText = data.indicators.EMA_50;
-
-                    renderTradingViewChart(data.historical_chart_data);
-                } else {
-                    alert("⚠️ Error: " + json.message);
-                    goHome();
-                }
-            } catch (err) {
-                // 🔥 FIX: Exact error dikhayega ab, faltu ka message nahi!
-                document.getElementById('loading').style.display = 'none';
-                alert("Frontend/JavaScript Error: " + err.message);
-                goHome();
-            }
+            document.getElementById('analyzer-view').style.display = 'block';
+            const res = await fetch(`${API}/analyze/${symbol}`);
+            const json = await res.json();
+            const d = json.data;
+            document.getElementById('stk-name').innerText = d.symbol + " - ₹" + d.price;
+            renderChart(d);
         }
 
-        function renderTradingViewChart(data) {
-            try {
-                const chartDom = document.getElementById('tv-chart');
-                
-                // 🔥 FIX: Puraana chart memory se delete karna taaki naya lag sake bina crash hue
-                if (chart) { chart.remove(); chart = null; }
-                chartDom.innerHTML = ""; 
-                
-                // 🔥 FIX: Duplicate Dates ko hatana (Lightweight Charts duplicate dates par crash ho jata hai)
-                const uniqueData = [];
-                const seenDates = new Set();
-                for(let i=0; i<data.length; i++) {
-                    if(!seenDates.has(data[i].time)) {
-                        seenDates.add(data[i].time);
-                        uniqueData.push(data[i]);
-                    }
-                }
+        function renderChart(data) {
+            if (chart) chart.remove();
+            chart = LightweightCharts.createChart(document.getElementById('tv-chart'), {
+                layout: { background: { color: '#121417' }, textColor: '#d1d4dc' },
+                grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
+            });
+            candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645' });
+            candleSeries.setData(data.chart);
+            
+            // Markers for SMC BOS
+            const markers = data.chart.filter(c => c.bos !== "").map(c => ({
+                time: c.time, position: 'aboveBar', color: '#2962ff', shape: 'arrowDown', text: 'BOS'
+            }));
+            candleSeries.setMarkers(markers);
 
-                chart = LightweightCharts.createChart(chartDom, { layout: { background: { type: 'solid', color: '#121417' }, textColor: '#d1d4dc', }, grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' }, }, timeScale: { borderColor: '#2b2b43', rightOffset: 5, }, });
-                
-                candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
-                candleSeries.setData(uniqueData);
-                
-                ema20Series = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, title: 'EMA 20' });
-                ema20Series.setData(uniqueData.filter(d => d.ema20 !== null).map(d => ({ time: d.time, value: d.ema20 })));
-                
-                ema50Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 2, title: 'EMA 50' });
-                ema50Series.setData(uniqueData.filter(d => d.ema50 !== null).map(d => ({ time: d.time, value: d.ema50 })));
-                
-                chart.timeScale().fitContent();
-            } catch (err) {
-                console.error("Chart Render Error: ", err);
-                alert("Chart System Error: " + err.message);
-            }
+            // Prepare Lines
+            lineST3 = chart.addLineSeries({ color: '#f23645', lineWidth: 2, visible: false });
+            lineST3.setData(data.chart.map(c => ({ time: c.time, value: c.st3 })));
+            
+            lineST1 = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, visible: false });
+            lineST1.setData(data.chart.map(c => ({ time: c.time, value: c.st1 })));
+
+            // Save Pivots data to global for toggle
+            window.pivotData = data.pivots;
+            window.chartData = data.chart;
         }
 
-        function toggleEMA(p, btn) {
+        function toggleST(type) {
+            if(type === 'st3') { lineST3.applyOptions({ visible: !lineST3.options().visible }); document.getElementById('btnST3').classList.toggle('active'); }
+            if(type === 'st1') { lineST1.applyOptions({ visible: !lineST1.options().visible }); document.getElementById('btnST1').classList.toggle('active'); }
+        }
+
+        function togglePivots() {
+            const btn = document.getElementById('btnPivot');
             btn.classList.toggle('active');
-            let isAct = btn.classList.contains('active');
-            if(p === 20) ema20Series.applyOptions({ visible: isAct });
-            if(p === 50) ema50Series.applyOptions({ visible: isAct });
+            if(btn.classList.contains('active')) {
+                const colors = ['#888', '#f23645', '#089981'];
+                ['p', 'r1', 's1'].forEach((k, i) => {
+                    const l = chart.addLineSeries({ color: colors[i], lineWidth: 1, lineStyle: 2 });
+                    l.setData(window.chartData.map(c => ({ time: c.time, value: window.pivotData[k] })));
+                    pLines.push(l);
+                });
+            } else {
+                pLines.forEach(l => chart.removeSeries(l));
+                pLines = [];
+            }
         }
 
-        goHome();
+        fetchScanner();
     </script>
 </body>
 </html>
