@@ -31,7 +31,7 @@
         #analyzer-view { display: none; }
         .loading { text-align: center; padding: 100px; font-size: 20px; color: var(--text-muted); display: none;}
 
-        .section-title { margin-top: 40px; margin-bottom: 20px; font-size: 24px; font-weight: 800; color: white; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
+        .section-title { margin-top: 20px; margin-bottom: 20px; font-size: 24px; font-weight: 800; color: white; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .card { background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
         .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-size: 18px; font-weight: 800; }
@@ -68,7 +68,7 @@
             <datalist id="stock-list">
                 <option value="RELIANCE"><option value="HDFCBANK"><option value="TCS"><option value="INFY"><option value="ICICIBANK">
                 <option value="ZOMATO"><option value="BHEL"><option value="TATAMOTORS"><option value="SUZLON"><option value="SBIN">
-                </datalist>
+            </datalist>
             <button class="btn" onclick="triggerSearch()">Analyze</button>
         </div>
     </div>
@@ -76,47 +76,27 @@
     <div class="container">
         <div id="loading" class="loading">
             <h2>🧠 AI Engine Processing...</h2>
-            <p>Scanning data and calculating technicals.</p>
+            <p>Fetching institutional data and calculating technicals.</p>
         </div>
 
         <div id="scanner-view">
-            
-            <h2 class="section-title">🔥 Market Heat (Top Movers)</h2>
+            <h2 class="section-title">🔥 Market Heat (Top F&O Movers)</h2>
             <div class="grid-container">
                 <div class="card">
                     <div class="card-header" style="color: var(--bull-green);">🚀 Top Gainers</div>
                     <table>
-                        <thead><tr><th>SYMBOL</th><th>PRICE</th><th>CHANGE</th></tr></thead>
+                        <thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead>
                         <tbody id="gainer-body"></tbody>
                     </table>
                 </div>
                 <div class="card">
                     <div class="card-header" style="color: var(--bear-red);">🩸 Top Losers</div>
                     <table>
-                        <thead><tr><th>SYMBOL</th><th>PRICE</th><th>CHANGE</th></tr></thead>
+                        <thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead>
                         <tbody id="loser-body"></tbody>
                     </table>
                 </div>
             </div>
-
-            <h2 class="section-title">📡 Algo Setups (Breakouts & Reversals)</h2>
-            <div class="grid-container">
-                <div class="card">
-                    <div class="card-header">🕯️ Reversal Radar</div>
-                    <table>
-                        <thead><tr><th>SYMBOL</th><th>CHANGE</th><th>SIGNAL</th></tr></thead>
-                        <tbody id="rev-body"></tbody>
-                    </table>
-                </div>
-                <div class="card">
-                    <div class="card-header">📈 Channel Breakout</div>
-                    <table>
-                        <thead><tr><th>SYMBOL</th><th>CHANGE</th><th>SIGNAL</th></tr></thead>
-                        <tbody id="bo-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
         </div>
 
         <div id="analyzer-view">
@@ -163,7 +143,6 @@
         function handleSearch(e) { if(e.key === 'Enter') triggerSearch(); }
         
         function triggerSearch() {
-            // Smart input formatting: Uppercase and remove spaces automatically
             let val = document.getElementById('searchInput').value.trim().toUpperCase().replace(/\s/g, '');
             if(val) openAnalyzer(val);
         }
@@ -173,27 +152,23 @@
                 const res = await fetch(`${API_BASE_URL}/swing-scanner`);
                 const json = await res.json();
                 if(json.status === 'success') {
-                    renderTable('gainer-body', json.data.top_gainers, true);
-                    renderTable('loser-body', json.data.top_losers, true);
-                    renderTable('rev-body', json.data.reversals, false);
-                    renderTable('bo-body', json.data.breakouts, false);
+                    renderTable('gainer-body', json.data.top_gainers);
+                    renderTable('loser-body', json.data.top_losers);
                 }
             } catch (err) { console.error("Scanner Error", err); }
         }
 
-        function renderTable(id, data, isMovers) {
+        function renderTable(id, data) {
             let html = "";
             if(data.length === 0) { html = `<tr><td colspan='3'>No data found.</td></tr>`; }
             else {
                 data.forEach(item => {
                     let color = item.Percent > 0 ? "pct-green" : "pct-red";
                     let sign = item.Percent > 0 ? '+' : '';
-                    let thirdCol = isMovers ? `₹${item.Price}` : `<span style="background:${item.Signal==='BULL'?'rgba(8,153,129,0.2)':'rgba(242,54,69,0.2)'}; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold; color:${item.Signal==='BULL'?'var(--bull-green)':'var(--bear-red)'}">${item.Signal}</span>`;
-                    
                     html += `<tr class="clickable-row" onclick="openAnalyzer('${item.Symbol}')">
                         <td style="font-weight:bold;">${item.Symbol}</td>
+                        <td style="color:var(--text-muted);">₹${item.Price}</td>
                         <td class="${color}">${sign}${item.Percent}%</td>
-                        <td>${thirdCol}</td>
                     </tr>`;
                 });
             }
@@ -204,7 +179,6 @@
             document.getElementById('scanner-view').style.display = 'none';
             document.getElementById('analyzer-view').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
-            // Clear search bar
             document.getElementById('searchInput').value = ''; 
 
             try {
@@ -228,11 +202,11 @@
 
                     renderTradingViewChart(data.historical_chart_data);
                 } else {
-                    alert("⚠️ Data not found for: " + symbol + "\nCheck spelling or try F&O symbols only.");
+                    alert("⚠️ Error: " + json.message);
                     goHome();
                 }
             } catch (err) {
-                alert("Server Error.");
+                alert("Server Connection Error.");
                 goHome();
             }
         }
