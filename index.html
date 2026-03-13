@@ -2,120 +2,142 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Matrix 1.0 Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chads Matrix Terminal</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <style>
-        :root { --bg: #090b0e; --card: #121417; --blue: #2962ff; --green: #089981; --red: #f23645; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; }
-        .container { padding: 20px; max-width: 1200px; margin: auto; }
-        #tv-chart { height: 500px; background: var(--card); border-radius: 10px; border: 1px solid #26292e; }
-        .controls { margin-bottom: 15px; display: flex; gap: 10px; }
-        .btn { background: #26292e; color: #6b7280; border: 1px solid #333; padding: 8px 15px; cursor: pointer; border-radius: 5px; }
-        .btn.active { background: var(--blue); color: white; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        table { width: 100%; border-collapse: collapse; background: var(--card); }
-        th, td { padding: 12px; border-bottom: 1px solid #26292e; text-align: left; cursor: pointer; }
-        .up { color: var(--green); } .down { color: var(--red); }
+        :root {
+            --bg-dark: #090b0e; --card-bg: #121417; --text-main: #f1f5f9; --text-muted: #6b7280;
+            --bull-green: #089981; --bear-red: #f23645; --border-color: #26292e; --accent-blue: #2962ff;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+        .logo { font-size: 22px; font-weight: 800; cursor: pointer; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .card { background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { color: var(--text-muted); font-size: 13px; text-align: left; padding: 15px 20px; border-bottom: 1px solid var(--border-color); }
+        td { padding: 15px 20px; border-bottom: 1px solid #1a1e23; cursor: pointer; }
+        .pct-green { color: var(--bull-green); } .pct-red { color: var(--bear-red); }
+        #tv-chart { width: 100%; height: 600px; margin-top: 20px; background: var(--card-bg); border-radius: 12px; }
+        .indicator-btn { background: #1a1e23; border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-right: 10px; }
+        .indicator-btn.active { border-color: var(--accent-blue); color: white; background: var(--accent-blue); }
     </style>
 </head>
 <body>
+    <div class="navbar">
+        <div class="logo" onclick="location.reload()">⚡ CHADS MATRIX</div>
+    </div>
+
     <div class="container">
-        <h1 onclick="location.reload()">⚡ MATRIX 1.0</h1>
-        
         <div id="scanner-view">
-            <div class="grid">
-                <div><h3>🚀 Gainers</h3><table id="g-table"></table></div>
-                <div><h3>🩸 Losers</h3><table id="l-table"></table></div>
+            <h2 style="margin-bottom:20px;">🔥 Market Heat</h2>
+            <div class="grid-container">
+                <div class="card">
+                    <div style="padding:15px; color:var(--bull-green); font-weight:800;">🚀 Gainers</div>
+                    <table><tbody id="gainer-body"></tbody></table>
+                </div>
+                <div class="card">
+                    <div style="padding:15px; color:var(--bear-red); font-weight:800;">🩸 Losers</div>
+                    <table><tbody id="loser-body"></tbody></table>
+                </div>
             </div>
         </div>
 
         <div id="analyzer-view" style="display:none;">
-            <button class="btn" onclick="location.reload()">← Back</button>
-            <h2 id="stk-name">--</h2>
-            <div class="controls">
-                <button id="btnST3" class="btn" onclick="toggleST('st3')">ST 10:3</button>
-                <button id="btnST1" class="btn" onclick="toggleST('st1')">ST 10:1</button>
-                <button id="btnPivot" class="btn" onclick="togglePivots()">Pivots</button>
+            <button class="indicator-btn" onclick="location.reload()">← BACK</button>
+            <h1 id="stockName" style="margin: 20px 0 10px 0;">--</h1>
+            <div class="chart-controls">
+                <button id="btnST3" class="indicator-btn" onclick="toggleST(3)">ST 10:3</button>
+                <button id="btnST1" class="indicator-btn" onclick="toggleST(1)">ST 10:1</button>
+                <button id="btnPivot" class="indicator-btn" onclick="togglePivots()">PIVOTS</button>
             </div>
             <div id="tv-chart"></div>
         </div>
     </div>
 
     <script>
-        const API = "http://localhost:10000/api"; // Render pe push karne ke baad change karna
-        let chart, candleSeries, lineST3, lineST1, pLines = [];
-        let rawData = [];
+        const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:10000/api' : '/api';
+        let chart, candleSeries, st3Series, st1Series, pivotLines = [];
+        let currentData = null;
 
         async function fetchScanner() {
-            const res = await fetch(`${API}/swing-scanner`);
+            const res = await fetch(`${API_BASE_URL}/swing-scanner`);
             const json = await res.json();
-            fillTable('g-table', json.data.top_gainers);
-            fillTable('l-table', json.data.top_losers);
+            renderTable('gainer-body', json.data.top_gainers);
+            renderTable('loser-body', json.data.top_losers);
         }
 
-        function fillTable(id, data) {
-            let html = `<tr><th>Symbol</th><th>Price</th><th>%</th></tr>`;
-            data.forEach(s => {
-                html += `<tr onclick="openAnalyzer('${s.Symbol}')"><td>${s.Symbol}</td><td>${s.Price}</td><td class="${s.Percent>0?'up':'down'}">${s.Percent}%</td></tr>`;
-            });
+        function renderTable(id, data) {
+            let html = data.map(item => `
+                <tr onclick="openAnalyzer('${item.Symbol}')">
+                    <td><b>${item.Symbol}</b></td>
+                    <td>₹${item.Price}</td>
+                    <td class="${item.Percent > 0 ? 'pct-green' : 'pct-red'}">${item.Percent}%</td>
+                </tr>
+            `).join('');
             document.getElementById(id).innerHTML = html;
         }
 
         async function openAnalyzer(symbol) {
             document.getElementById('scanner-view').style.display = 'none';
             document.getElementById('analyzer-view').style.display = 'block';
-            const res = await fetch(`${API}/analyze/${symbol}`);
+            const res = await fetch(`${API_BASE_URL}/analyze/${symbol}`);
             const json = await res.json();
-            const d = json.data;
-            document.getElementById('stk-name').innerText = d.symbol + " - ₹" + d.price;
-            renderChart(d);
+            currentData = json.data;
+            document.getElementById('stockName').innerText = currentData.symbol;
+            initChart(currentData);
         }
 
-        function renderChart(data) {
+        function initChart(data) {
             if (chart) chart.remove();
-            chart = LightweightCharts.createChart(document.getElementById('tv-chart'), {
+            const chartDom = document.getElementById('tv-chart');
+            chart = LightweightCharts.createChart(chartDom, {
                 layout: { background: { color: '#121417' }, textColor: '#d1d4dc' },
-                grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
+                grid: { vertLines: { color: '#26292e' }, horzLines: { color: '#26292e' } },
+                timeScale: { borderColor: '#26292e' }
             });
+
             candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645' });
-            candleSeries.setData(data.chart);
-            
-            // Markers for SMC BOS
-            const markers = data.chart.filter(c => c.bos !== "").map(c => ({
-                time: c.time, position: 'aboveBar', color: '#2962ff', shape: 'arrowDown', text: 'BOS'
-            }));
-            candleSeries.setMarkers(markers);
+            candleSeries.setData(data.historical_chart_data);
 
-            // Prepare Lines
-            lineST3 = chart.addLineSeries({ color: '#f23645', lineWidth: 2, visible: false });
-            lineST3.setData(data.chart.map(c => ({ time: c.time, value: c.st3 })));
-            
-            lineST1 = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, visible: false });
-            lineST1.setData(data.chart.map(c => ({ time: c.time, value: c.st1 })));
+            st3Series = chart.addLineSeries({ color: '#f23645', lineWidth: 2, visible: false });
+            st3Series.setData(data.historical_chart_data.map(d => ({ time: d.time, value: d.st3 })));
 
-            // Save Pivots data to global for toggle
-            window.pivotData = data.pivots;
-            window.chartData = data.chart;
+            st1Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, visible: false });
+            st1Series.setData(data.historical_chart_data.map(d => ({ time: d.time, value: d.st1 })));
+
+            chart.timeScale().fitContent();
         }
 
-        function toggleST(type) {
-            if(type === 'st3') { lineST3.applyOptions({ visible: !lineST3.options().visible }); document.getElementById('btnST3').classList.toggle('active'); }
-            if(type === 'st1') { lineST1.applyOptions({ visible: !lineST1.options().visible }); document.getElementById('btnST1').classList.toggle('active'); }
+        function toggleST(val) {
+            if(val === 3) {
+                const isVis = !st3Series.options().visible;
+                st3Series.applyOptions({ visible: isVis });
+                document.getElementById('btnST3').classList.toggle('active', isVis);
+            } else {
+                const isVis = !st1Series.options().visible;
+                st1Series.applyOptions({ visible: isVis });
+                document.getElementById('btnST1').classList.toggle('active', isVis);
+            }
         }
 
         function togglePivots() {
             const btn = document.getElementById('btnPivot');
             btn.classList.toggle('active');
             if(btn.classList.contains('active')) {
+                const p = currentData.pivots;
                 const colors = ['#888', '#f23645', '#089981'];
-                ['p', 'r1', 's1'].forEach((k, i) => {
+                const vals = [p.p, p.r1, p.s1];
+                vals.forEach((v, i) => {
                     const l = chart.addLineSeries({ color: colors[i], lineWidth: 1, lineStyle: 2 });
-                    l.setData(window.chartData.map(c => ({ time: c.time, value: window.pivotData[k] })));
-                    pLines.push(l);
+                    l.setData(currentData.historical_chart_data.map(d => ({ time: d.time, value: v })));
+                    pivotLines.push(l);
                 });
             } else {
-                pLines.forEach(l => chart.removeSeries(l));
-                pLines = [];
+                pivotLines.forEach(l => chart.removeSeries(l));
+                pivotLines = [];
             }
         }
 
