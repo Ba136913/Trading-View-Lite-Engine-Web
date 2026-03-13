@@ -9,6 +9,7 @@
         :root {
             --bg-dark: #090b0e; --card-bg: #121417; --text-main: #f1f5f9; --text-muted: #6b7280;
             --bull-green: #089981; --bear-red: #f23645; --border-color: #26292e; --accent-blue: #2962ff;
+            --orange: #ff9800; --pink: #e91e63;
         }
         body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; }
         .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); }
@@ -34,8 +35,8 @@
         .stock-title { font-size: 36px; font-weight: 900; margin: 0; } .stock-price { font-size: 28px; font-weight: bold; }
         .ai-box { background: linear-gradient(145deg, rgba(41,98,255,0.1), rgba(9,11,14,1)); border: 1px solid rgba(41,98,255,0.3); border-left: 5px solid var(--accent-blue); padding: 25px; border-radius: 12px; margin-bottom: 25px; line-height: 1.6; }
         .ai-title { font-weight: 800; color: var(--accent-blue); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;}
-        .chart-controls { display: flex; gap: 10px; margin-bottom: 15px; }
-        .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 15px; border-radius: 6px; cursor: pointer; }
+        .chart-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+        .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;}
         .indicator-btn.active { background: var(--card-bg); color: white; border-color: var(--text-muted); }
         #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 25px; }
@@ -92,10 +93,15 @@
                 <div class="ai-title">🤖 GEMINI QUANT PREDICTION</div>
                 <div id="aiText">Analyzing chart patterns...</div>
             </div>
+            
             <div class="chart-controls">
                 <button class="indicator-btn active" onclick="toggleEMA(20, this)">EMA 20</button>
                 <button class="indicator-btn active" onclick="toggleEMA(50, this)">EMA 50</button>
+                <button class="indicator-btn" onclick="toggleST(3, this)">ST 10:3</button>
+                <button class="indicator-btn" onclick="toggleST(1, this)">ST 10:1</button>
+                <button class="indicator-btn" onclick="togglePivots(this)">Pivots</button>
             </div>
+            
             <div id="tv-chart"></div>
             <div class="stats-grid">
                 <div class="stat-card"><div class="stat-label">RSI (14)</div><div class="stat-value" id="valRSI">--</div></div>
@@ -108,7 +114,11 @@
 
     <script>
         const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
-        let chart = null, candleSeries = null, ema20Series = null, ema50Series = null;
+        let chart = null, candleSeries = null;
+        let ema20Series = null, ema50Series = null;
+        let st3Series = null, st1Series = null;
+        let pivotLines = [];
+        let currentData = null; // Store data globally for toggles
 
         function goHome() {
             document.getElementById('scanner-view').style.display = 'block';
@@ -159,7 +169,6 @@
             document.getElementById('searchInput').value = ''; 
 
             try {
-                // 🔥 FIX: Encode URI (For symbols like M&M)
                 const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(symbol)}`);
                 const json = await res.json();
 
@@ -168,6 +177,8 @@
                     document.getElementById('analyzer-view').style.display = 'block';
                     
                     const data = json.data;
+                    currentData = data; // Save for toggle functions
+
                     document.getElementById('stockName').innerText = data.symbol;
                     document.getElementById('stockPrice').innerText = "₹" + data.latest_close;
                     document.getElementById('aiText').innerText = data.ai_prediction;
@@ -180,11 +191,11 @@
 
                     renderTradingViewChart(data.historical_chart_data);
                 } else {
+                    document.getElementById('loading').style.display = 'none';
                     alert("⚠️ Error: " + json.message);
                     goHome();
                 }
             } catch (err) {
-                // 🔥 FIX: Exact error dikhayega ab, faltu ka message nahi!
                 document.getElementById('loading').style.display = 'none';
                 alert("Frontend/JavaScript Error: " + err.message);
                 goHome();
@@ -194,12 +205,9 @@
         function renderTradingViewChart(data) {
             try {
                 const chartDom = document.getElementById('tv-chart');
-                
-                // 🔥 FIX: Puraana chart memory se delete karna taaki naya lag sake bina crash hue
-                if (chart) { chart.remove(); chart = null; }
+                if (chart) { chart.remove(); chart = null; pivotLines = []; }
                 chartDom.innerHTML = ""; 
                 
-                // 🔥 FIX: Duplicate Dates ko hatana (Lightweight Charts duplicate dates par crash ho jata hai)
                 const uniqueData = [];
                 const seenDates = new Set();
                 for(let i=0; i<data.length; i++) {
@@ -214,12 +222,20 @@
                 candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
                 candleSeries.setData(uniqueData);
                 
+                // EMAs
                 ema20Series = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, title: 'EMA 20' });
                 ema20Series.setData(uniqueData.filter(d => d.ema20 !== null).map(d => ({ time: d.time, value: d.ema20 })));
                 
                 ema50Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 2, title: 'EMA 50' });
                 ema50Series.setData(uniqueData.filter(d => d.ema50 !== null).map(d => ({ time: d.time, value: d.ema50 })));
                 
+                // SuperTrends (Hidden by default)
+                st3Series = chart.addLineSeries({ color: 'var(--bear-red)', lineWidth: 2, title: 'ST 10:3', visible: false });
+                st3Series.setData(uniqueData.filter(d => d.st3 !== null).map(d => ({ time: d.time, value: d.st3 })));
+                
+                st1Series = chart.addLineSeries({ color: 'var(--pink)', lineWidth: 1, title: 'ST 10:1', visible: false });
+                st1Series.setData(uniqueData.filter(d => d.st1 !== null).map(d => ({ time: d.time, value: d.st1 })));
+
                 chart.timeScale().fitContent();
             } catch (err) {
                 console.error("Chart Render Error: ", err);
@@ -232,6 +248,35 @@
             let isAct = btn.classList.contains('active');
             if(p === 20) ema20Series.applyOptions({ visible: isAct });
             if(p === 50) ema50Series.applyOptions({ visible: isAct });
+        }
+
+        // 🔥 FIX: Added Toggle functionality for ST and Pivots
+        function toggleST(p, btn) {
+            btn.classList.toggle('active');
+            let isAct = btn.classList.contains('active');
+            if(p === 3) st3Series.applyOptions({ visible: isAct });
+            if(p === 1) st1Series.applyOptions({ visible: isAct });
+        }
+
+        function togglePivots(btn) {
+            btn.classList.toggle('active');
+            let isAct = btn.classList.contains('active');
+            
+            if(isAct && currentData) {
+                const p = currentData.pivots.p;
+                const r1 = currentData.pivots.r1;
+                const s1 = currentData.pivots.s1;
+                const colors = ['#888', 'var(--bear-red)', 'var(--bull-green)'];
+                
+                [p, r1, s1].forEach((val, i) => {
+                    const l = chart.addLineSeries({ color: colors[i], lineWidth: 1, lineStyle: 2 });
+                    l.setData(currentData.historical_chart_data.map(d => ({ time: d.time, value: val })));
+                    pivotLines.push(l);
+                });
+            } else {
+                pivotLines.forEach(l => chart.removeSeries(l));
+                pivotLines = [];
+            }
         }
 
         goHome();
