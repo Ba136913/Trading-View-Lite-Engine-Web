@@ -4,28 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chads TV Terminal</title>
-    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="[https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js](https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js)"></script>
     <style>
         :root {
             --bg-dark: #0f1115; --card-bg: #131722; --text-main: #d1d4dc; --text-muted: #787b86;
             --bull-green: #089981; --bear-red: #f23645; --border-color: #2b2b43; --accent-blue: #2962ff;
         }
         body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0;}
-        
         .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;}
         .logo { font-size: 20px; font-weight: 800; cursor: pointer; color: white; }
         .search-box { display: flex; gap: 8px; width: 100%; max-width: 400px;}
         .search-input { flex: 1; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; outline: none; text-transform: uppercase;}
         .search-input:focus { border-color: var(--accent-blue); }
         .btn { background: var(--accent-blue); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; white-space: nowrap;}
-        
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         #scanner-view { display: block; } #analyzer-view { display: none; }
         .loading { text-align: center; padding: 80px 20px; font-size: 18px; color: var(--text-muted); display: none;}
-        
         .section-title { margin-top: 10px; margin-bottom: 20px; font-size: 22px; font-weight: 800; color: white; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
         .card { background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; }
         .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-size: 16px; font-weight: 800; }
         table { width: 100%; border-collapse: collapse; }
@@ -34,15 +30,12 @@
         .clickable-row { cursor: pointer; transition: 0.2s; }
         .clickable-row:hover { background-color: rgba(41, 98, 255, 0.1); }
         .pct-green { color: var(--bull-green); font-weight: bold; } .pct-red { color: var(--bear-red); font-weight: bold; }
-        
         .terminal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
         .stock-title { font-size: 28px; font-weight: 900; margin: 0; color: white;} .stock-price { font-size: 24px; font-weight: bold; color: white; }
-        
         .chart-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;}
         .indicator-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
         #tv-chart { width: 100%; height: 550px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); }
-
         @media (max-width: 768px) {
             .grid-container { grid-template-columns: 1fr; }
             #tv-chart { height: 450px; }
@@ -107,7 +100,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
+        const API_BASE_URL = "[https://trading-view-lite-engine.onrender.com/api](https://trading-view-lite-engine.onrender.com/api)"; 
         let chart = null, candleSeries = null;
         let st3Series = null, st1Series = null;
         let pivotLines = [];
@@ -201,7 +194,6 @@
                     }
                 }
 
-                // 🔥 TV Experience Settings: Magnet crosshair, wider candles
                 chart = LightweightCharts.createChart(chartDom, { 
                     layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc', }, 
                     grid: { vertLines: { color: '#1f2933' }, horzLines: { color: '#1f2933' }, }, 
@@ -212,7 +204,6 @@
                 candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
                 candleSeries.setData(uniqueData);
                 
-                // SuperTrends
                 st3Series = chart.addLineSeries({ color: '#f23645', lineWidth: 2, title: 'ST 10:3', visible: false });
                 st3Series.setData(uniqueData.filter(d => d.st3 !== null).map(d => ({ time: d.time, value: d.st3 })));
                 
@@ -232,7 +223,6 @@
             if(p === 1) st1Series.applyOptions({ visible: isAct });
         }
 
-        // 🔥 THE MAGIC FIX: Breaking Pivot lines per day to avoid "Box" effect
         function togglePivots(btn) {
             btn.classList.toggle('active');
             let isAct = btn.classList.contains('active');
@@ -246,7 +236,6 @@
                     { key: 's3', color: '#089981', title: 'S3' }, { key: 's4', color: '#089981', title: 'S4' }, { key: 's5', color: '#089981', title: 'S5' }
                 ];
 
-                // Group data exactly by Day
                 const groupedByDay = {};
                 currentData.historical_chart_data.forEach(d => {
                     const dayStr = new Date(d.time * 1000).toDateString();
@@ -256,9 +245,8 @@
 
                 const days = Object.values(groupedByDay);
 
-                // Draw separate lines for each day to prevent vertical connection lines
                 days.forEach((dayData, index) => {
-                    const isLastDay = index === days.length - 1; // Only show title on the current day
+                    const isLastDay = index === days.length - 1; 
 
                     pivotLevels.forEach(level => {
                         const lineData = dayData
@@ -269,249 +257,15 @@
                             const l = chart.addLineSeries({ 
                                 color: level.color, 
                                 lineWidth: 1, 
-                                lineStyle: 2, // Dotted style like TV
+                                lineStyle: 2, 
                                 title: isLastDay ? level.title : '', 
                                 crosshairMarkerVisible: false,
-                                lastValueVisible: isLastDay // Hides price tags from old days
+                                lastValueVisible: isLastDay 
                             });
                             l.setData(lineData);
                             pivotLines.push(l);
                         }
                     });
-                });
-            } else {
-                pivotLines.forEach(l => chart.removeSeries(l));
-                pivotLines = [];
-            }
-        }
-
-        goHome();
-    </script>
-</body>
-</html>
-        
-        .terminal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
-        .stock-title { font-size: 28px; font-weight: 900; margin: 0; } .stock-price { font-size: 24px; font-weight: bold; }
-        
-        .chart-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
-        .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;}
-        .indicator-btn.active { background: var(--card-bg); color: white; border-color: var(--accent-blue); }
-        #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); }
-
-        /* 🔥 MOBILE RESPONSIVE CSS */
-        @media (max-width: 768px) {
-            .grid-container { grid-template-columns: 1fr; }
-            #tv-chart { height: 400px; }
-            .terminal-header { flex-direction: column; align-items: flex-start; }
-            .search-box { max-width: 100%; }
-        }
-    </style>
-</head>
-<body>
-    <div class="navbar">
-        <div class="logo" onclick="goHome()">⚡ CHADS TERMINAL</div>
-        <div class="search-box">
-            <input list="stock-list" type="text" id="searchInput" class="search-input" placeholder="F&O Stock..." onkeypress="handleSearch(event)">
-            <datalist id="stock-list">
-                <option value="RELIANCE"><option value="HDFCBANK"><option value="TCS"><option value="INFY"><option value="ICICIBANK">
-                <option value="ZOMATO"><option value="BHEL"><option value="TATAMOTORS"><option value="SUZLON"><option value="SBIN">
-            </datalist>
-            <button class="btn" onclick="triggerSearch()">Analyze</button>
-        </div>
-    </div>
-
-    <div class="container">
-        <div id="loading" class="loading">
-            <h2>🧠 Engine Processing...</h2>
-            <p>Fetching 5-Min Intraday Data & Matrix Levels.</p>
-        </div>
-
-        <div id="scanner-view">
-            <h2 class="section-title">🔥 Market Heat (Top Movers)</h2>
-            <div class="grid-container">
-                <div class="card">
-                    <div class="card-header" style="color: var(--bull-green);">🚀 Top Gainers</div>
-                    <table>
-                        <thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead>
-                        <tbody id="gainer-body"></tbody>
-                    </table>
-                </div>
-                <div class="card">
-                    <div class="card-header" style="color: var(--bear-red);">🩸 Top Losers</div>
-                    <table>
-                        <thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead>
-                        <tbody id="loser-body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="analyzer-view">
-            <button class="btn" style="background:var(--card-bg); border:1px solid var(--border-color); margin-bottom: 20px;" onclick="goHome()">← Back</button>
-            <div class="terminal-header">
-                <div>
-                    <h1 class="stock-title" id="stockName">--</h1>
-                    <div style="color: var(--accent-blue); font-weight: bold; margin-top:5px; font-size:14px;">Timeframe: 5 Minutes ⏱️</div>
-                </div>
-                <div class="stock-price" id="stockPrice">₹--</div>
-            </div>
-            
-            <div class="chart-controls">
-                <button class="indicator-btn" onclick="toggleST(3, this)">ST 10:3</button>
-                <button class="indicator-btn" onclick="toggleST(1, this)">ST 10:1</button>
-                <button class="indicator-btn" onclick="togglePivots(this)">Pivots (Trad 15)</button>
-            </div>
-            
-            <div id="tv-chart"></div>
-        </div>
-    </div>
-
-    <script>
-        const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
-        let chart = null, candleSeries = null;
-        let st3Series = null, st1Series = null;
-        let pivotLines = [];
-        let currentData = null;
-
-        function goHome() {
-            document.getElementById('scanner-view').style.display = 'block';
-            document.getElementById('analyzer-view').style.display = 'none';
-            document.getElementById('loading').style.display = 'none';
-            fetchScanner();
-        }
-
-        function handleSearch(e) { if(e.key === 'Enter') triggerSearch(); }
-        
-        function triggerSearch() {
-            let val = document.getElementById('searchInput').value.trim().toUpperCase().replace(/\s/g, '');
-            if(val) openAnalyzer(val);
-        }
-
-        async function fetchScanner() {
-            try {
-                const res = await fetch(`${API_BASE_URL}/swing-scanner`);
-                const json = await res.json();
-                if(json.status === 'success') {
-                    renderTable('gainer-body', json.data.top_gainers);
-                    renderTable('loser-body', json.data.top_losers);
-                }
-            } catch (err) { console.error("Scanner Error", err); }
-        }
-
-        function renderTable(id, data) {
-            let html = "";
-            if(data.length === 0) { html = `<tr><td colspan='3'>No data found.</td></tr>`; }
-            else {
-                data.forEach(item => {
-                    let color = item.Percent > 0 ? "pct-green" : "pct-red";
-                    let sign = item.Percent > 0 ? '+' : '';
-                    html += `<tr class="clickable-row" onclick="openAnalyzer('${item.Symbol}')">
-                        <td style="font-weight:bold;">${item.Symbol}</td>
-                        <td style="color:var(--text-muted);">₹${item.Price}</td>
-                        <td class="${color}">${sign}${item.Percent}%</td>
-                    </tr>`;
-                });
-            }
-            document.getElementById(id).innerHTML = html;
-        }
-
-        async function openAnalyzer(symbol) {
-            document.getElementById('scanner-view').style.display = 'none';
-            document.getElementById('analyzer-view').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('searchInput').value = ''; 
-
-            try {
-                const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(symbol)}`);
-                const json = await res.json();
-
-                if(json.status === 'success') {
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('analyzer-view').style.display = 'block';
-                    
-                    currentData = json.data;
-                    document.getElementById('stockName').innerText = currentData.symbol;
-                    document.getElementById('stockPrice').innerText = "₹" + currentData.latest_close;
-
-                    renderTradingViewChart(currentData.historical_chart_data);
-                } else {
-                    document.getElementById('loading').style.display = 'none';
-                    alert("⚠️ Error: " + json.message);
-                    goHome();
-                }
-            } catch (err) {
-                document.getElementById('loading').style.display = 'none';
-                alert("Connection Error. Please try again.");
-                goHome();
-            }
-        }
-
-        function renderTradingViewChart(data) {
-            try {
-                const chartDom = document.getElementById('tv-chart');
-                if (chart) { chart.remove(); chart = null; pivotLines = []; }
-                chartDom.innerHTML = ""; 
-                
-                const uniqueData = [];
-                const seenDates = new Set();
-                for(let i=0; i<data.length; i++) {
-                    if(!seenDates.has(data[i].time)) {
-                        seenDates.add(data[i].time);
-                        uniqueData.push(data[i]);
-                    }
-                }
-
-                chart = LightweightCharts.createChart(chartDom, { 
-                    layout: { background: { type: 'solid', color: '#121417' }, textColor: '#d1d4dc', }, 
-                    grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' }, }, 
-                    timeScale: { borderColor: '#2b2b43', timeVisible: true, rightOffset: 5, }, 
-                });
-                
-                candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
-                candleSeries.setData(uniqueData);
-                
-                st3Series = chart.addLineSeries({ color: '#f23645', lineWidth: 2, title: 'ST 10:3', visible: false });
-                st3Series.setData(uniqueData.filter(d => d.st3 !== null).map(d => ({ time: d.time, value: d.st3 })));
-                
-                st1Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, title: 'ST 10:1', visible: false });
-                st1Series.setData(uniqueData.filter(d => d.st1 !== null).map(d => ({ time: d.time, value: d.st1 })));
-
-                chart.timeScale().fitContent();
-            } catch (err) {
-                console.error("Chart Render Error: ", err);
-            }
-        }
-
-        function toggleST(p, btn) {
-            btn.classList.toggle('active');
-            let isAct = btn.classList.contains('active');
-            if(p === 3) st3Series.applyOptions({ visible: isAct });
-            if(p === 1) st1Series.applyOptions({ visible: isAct });
-        }
-
-        function togglePivots(btn) {
-            btn.classList.toggle('active');
-            let isAct = btn.classList.contains('active');
-            
-            if(isAct && currentData) {
-                const pivotLevels = [
-                    { key: 'p', color: '#ff9800', title: 'P' }, 
-                    { key: 'r1', color: '#f23645', title: 'R1' }, { key: 'r2', color: '#f23645', title: 'R2' },
-                    { key: 'r3', color: '#f23645', title: 'R3' }, { key: 'r4', color: '#f23645', title: 'R4' }, { key: 'r5', color: '#f23645', title: 'R5' },
-                    { key: 's1', color: '#089981', title: 'S1' }, { key: 's2', color: '#089981', title: 'S2' },
-                    { key: 's3', color: '#089981', title: 'S3' }, { key: 's4', color: '#089981', title: 'S4' }, { key: 's5', color: '#089981', title: 'S5' }
-                ];
-                
-                pivotLevels.forEach(level => {
-                    const lineData = currentData.historical_chart_data
-                        .filter(d => d[level.key] !== null)
-                        .map(d => ({ time: d.time, value: d[level.key] }));
-                        
-                    if(lineData.length > 0) {
-                        const l = chart.addLineSeries({ color: level.color, lineWidth: 1, lineStyle: 2, title: level.title, crosshairMarkerVisible: false });
-                        l.setData(lineData);
-                        pivotLines.push(l);
-                    }
                 });
             } else {
                 pivotLines.forEach(l => chart.removeSeries(l));
