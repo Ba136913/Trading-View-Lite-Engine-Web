@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chads TV Terminal</title>
+    <title>Chads Pro Terminal</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
@@ -13,11 +13,11 @@
         body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0;}
         
         .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;}
-        .logo { font-size: 20px; font-weight: 800; cursor: pointer; color: white; }
+        .logo { font-size: 20px; font-weight: 900; cursor: pointer; color: white; letter-spacing: 1px;}
         .search-box { display: flex; gap: 8px; width: 100%; max-width: 400px;}
         .search-input { flex: 1; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; outline: none; text-transform: uppercase;}
         .search-input:focus { border-color: var(--accent-blue); }
-        .btn { background: var(--accent-blue); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; white-space: nowrap;}
+        .btn { background: var(--accent-blue); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;}
         
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         #scanner-view { display: block; } #analyzer-view { display: none; }
@@ -36,16 +36,22 @@
         .pct-green { color: var(--bull-green); font-weight: bold; } .pct-red { color: var(--bear-red); font-weight: bold; }
         
         .terminal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
-        .stock-title { font-size: 28px; font-weight: 900; margin: 0; color: white;} .stock-price { font-size: 24px; font-weight: bold; color: white; }
+        .stock-title { font-size: 32px; font-weight: 900; margin: 0; color: white;} .stock-price { font-size: 26px; font-weight: bold; color: white; }
         
-        .chart-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        /* 🔥 TIMEFRAME SELECTOR CSS */
+        .chart-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center;}
+        .timeframe-select { background: var(--bg-dark); color: white; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; outline: none;}
         .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;}
-        .indicator-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+        .indicator-btn.active { background: rgba(41, 98, 255, 0.2); color: var(--accent-blue); border-color: var(--accent-blue); }
+        
         #tv-chart { width: 100%; height: 550px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); }
+        
+        .ai-box { background: rgba(41, 98, 255, 0.05); border-left: 4px solid var(--accent-blue); padding: 15px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; line-height: 1.5; color: #a1a1aa;}
+        .ai-title { color: white; font-weight: bold; margin-bottom: 5px; font-size: 15px;}
 
         @media (max-width: 768px) {
             .grid-container { grid-template-columns: 1fr; }
-            #tv-chart { height: 450px; }
+            #tv-chart { height: 400px; }
             .terminal-header { flex-direction: column; align-items: flex-start; }
             .search-box { max-width: 100%; }
         }
@@ -62,12 +68,12 @@
 
     <div class="container">
         <div id="loading" class="loading">
-            <h2 id="loading-title">🧠 Engine Processing...</h2>
-            <p id="loading-text">Loading TradingView Experience & Intraday Matrix.</p>
+            <h2 id="loading-title">🧠 Fetching Market Data...</h2>
+            <p id="loading-text">Server is syncing live charts. Please wait.</p>
         </div>
 
         <div id="scanner-view">
-            <h2 class="section-title">🔥 Market Heat (Top Movers)</h2>
+            <h2 class="section-title">🔥 Market Heat</h2>
             <div class="grid-container">
                 <div class="card">
                     <div class="card-header" style="color: var(--bull-green);">🚀 Top Gainers</div>
@@ -87,19 +93,27 @@
         </div>
 
         <div id="analyzer-view">
-            <button class="btn" style="background:var(--card-bg); border:1px solid var(--border-color); margin-bottom: 20px;" onclick="goHome()">← Back</button>
+            <button class="btn" style="background:var(--card-bg); border:1px solid var(--border-color); margin-bottom: 20px; color:white;" onclick="goHome()">← Back</button>
             <div class="terminal-header">
                 <div>
                     <h1 class="stock-title" id="stockName">--</h1>
-                    <div style="color: var(--accent-blue); font-weight: bold; margin-top:5px; font-size:13px;">Timeframe: 5 Minutes ⏱️</div>
                 </div>
                 <div class="stock-price" id="stockPrice">₹--</div>
             </div>
             
+            <div class="ai-box">
+                <div class="ai-title">🤖 GEMINI QUANT AI</div>
+                <div id="aiText">--</div>
+            </div>
+            
             <div class="chart-controls">
-                <button class="indicator-btn" onclick="toggleST(3, this)">ST 10:3</button>
-                <button class="indicator-btn" onclick="toggleST(1, this)">ST 10:1</button>
-                <button class="indicator-btn" onclick="togglePivots(this)">Pivots (Traditional 15)</button>
+                <select id="timeframeSelector" class="timeframe-select" onchange="changeTimeframe()">
+                    <option value="5m" selected>5 Minutes</option>
+                    <option value="15m">15 Minutes</option>
+                    <option value="60m">1 Hour</option>
+                    <option value="1d">1 Day</option>
+                </select>
+                <button class="indicator-btn active" id="btnSignal" onclick="toggleSignals()">Buy/Sell Signals</button>
             </div>
             
             <div id="tv-chart"></div>
@@ -109,9 +123,9 @@
     <script>
         const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
         let chart = null, candleSeries = null;
-        let st3Series = null, st1Series = null;
-        let pivotLines = [];
-        let currentData = null;
+        let currentSymbol = "";
+        let signalMarkers = [];
+        let signalsVisible = true;
 
         function goHome() {
             document.getElementById('scanner-view').style.display = 'block';
@@ -127,34 +141,35 @@
             if(val) openAnalyzer(val);
         }
 
-        // 🔥 SMART FETCH: Handles Render Sleep Mode gracefully
+        function changeTimeframe() {
+            if(currentSymbol) openAnalyzer(currentSymbol);
+        }
+
         async function fetchScanner() {
-            document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3">Fetching data...</td></tr>`;
-            document.getElementById('loser-body').innerHTML = `<tr><td colspan="3">Fetching data...</td></tr>`;
-            
+            document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3">Fetching live data...</td></tr>`;
+            document.getElementById('loser-body').innerHTML = `<tr><td colspan="3">Fetching live data...</td></tr>`;
             try {
                 const res = await fetch(`${API_BASE_URL}/swing-scanner`);
-                const text = await res.text(); // Fetch as raw text first
-                
+                const text = await res.text();
                 try {
-                    const json = JSON.parse(text); // Try parsing
+                    const json = JSON.parse(text);
                     if(json.status === 'success') {
                         renderTable('gainer-body', json.data.top_gainers);
                         renderTable('loser-body', json.data.top_losers);
                     }
                 } catch(e) {
-                    // JSON parsing failed = Render sent HTML sleeping page
-                    document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--accent-blue);">Server waking up... Please refresh in 30 seconds. ⏱️</td></tr>`;
-                    document.getElementById('loser-body').innerHTML = `<tr><td colspan="3" style="color:var(--accent-blue);">Server waking up... Please refresh in 30 seconds. ⏱️</td></tr>`;
+                    document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--accent-blue);">Server waking up... Auto-refreshing in 10s.</td></tr>`;
+                    setTimeout(fetchScanner, 10000); // Auto-retry
                 }
             } catch (err) { 
-                document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--bear-red);">Network Error. Server is down.</td></tr>`;
+                document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--bear-red);">Network Error. Retrying...</td></tr>`;
+                setTimeout(fetchScanner, 5000);
             }
         }
 
         function renderTable(id, data) {
             let html = "";
-            if(data.length === 0) { html = `<tr><td colspan='3'>No data found.</td></tr>`; }
+            if(data.length === 0) html = `<tr><td colspan='3'>No data found.</td></tr>`;
             else {
                 data.forEach(item => {
                     let color = item.Percent > 0 ? "pct-green" : "pct-red";
@@ -170,15 +185,16 @@
         }
 
         async function openAnalyzer(symbol) {
+            currentSymbol = symbol;
+            const tf = document.getElementById('timeframeSelector').value;
+            
             document.getElementById('scanner-view').style.display = 'none';
             document.getElementById('analyzer-view').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
-            document.getElementById('loading-title').innerText = "🧠 Engine Processing...";
-            document.getElementById('loading-text').innerText = "Loading TradingView Experience & Intraday Matrix.";
             document.getElementById('searchInput').value = ''; 
 
             try {
-                const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(symbol)}`);
+                const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(symbol)}/${tf}`);
                 const text = await res.text();
                 
                 try {
@@ -187,122 +203,77 @@
                         document.getElementById('loading').style.display = 'none';
                         document.getElementById('analyzer-view').style.display = 'block';
                         
-                        currentData = json.data;
-                        document.getElementById('stockName').innerText = currentData.symbol;
-                        document.getElementById('stockPrice').innerText = "₹" + currentData.latest_close;
+                        document.getElementById('stockName').innerText = json.data.symbol;
+                        document.getElementById('stockPrice').innerText = "₹" + json.data.latest_close;
+                        document.getElementById('aiText').innerText = json.data.ai_prediction;
 
-                        renderTradingViewChart(currentData.historical_chart_data);
+                        renderTradingViewChart(json.data.historical_chart_data);
                     } else {
                         document.getElementById('loading').style.display = 'none';
                         alert("⚠️ Error: " + json.message);
                         goHome();
                     }
                 } catch(e) {
-                    document.getElementById('loading-title').innerText = "⏳ Waking Up Backend";
-                    document.getElementById('loading-text').innerText = "Free server is waking up from sleep. Please wait 30 seconds and search again.";
+                    setTimeout(() => openAnalyzer(symbol), 10000); // Wait and retry if server sleeping
                 }
             } catch (err) {
-                document.getElementById('loading').style.display = 'none';
                 alert("Connection Error.");
                 goHome();
             }
         }
 
         function renderTradingViewChart(data) {
-            try {
-                const chartDom = document.getElementById('tv-chart');
-                if (chart) { chart.remove(); chart = null; pivotLines = []; }
-                chartDom.innerHTML = ""; 
-                
-                const uniqueData = [];
-                const seenDates = new Set();
-                for(let i=0; i<data.length; i++) {
-                    if(!seenDates.has(data[i].time)) {
-                        seenDates.add(data[i].time);
-                        uniqueData.push(data[i]);
-                    }
-                }
-
-                chart = LightweightCharts.createChart(chartDom, { 
-                    layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc', }, 
-                    grid: { vertLines: { color: '#1f2933' }, horzLines: { color: '#1f2933' }, }, 
-                    timeScale: { borderColor: '#2b2b43', timeVisible: true, rightOffset: 10, barSpacing: 6 }, 
-                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
-                });
-                
-                candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
-                candleSeries.setData(uniqueData);
-                
-                st3Series = chart.addLineSeries({ color: '#f23645', lineWidth: 2, title: 'ST 10:3', visible: false });
-                st3Series.setData(uniqueData.filter(d => d.st3 !== null).map(d => ({ time: d.time, value: d.st3 })));
-                
-                st1Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, title: 'ST 10:1', visible: false });
-                st1Series.setData(uniqueData.filter(d => d.st1 !== null).map(d => ({ time: d.time, value: d.st1 })));
-
-                chart.timeScale().fitContent();
-            } catch (err) {
-                console.error("Chart Render Error: ", err);
-            }
-        }
-
-        function toggleST(p, btn) {
-            btn.classList.toggle('active');
-            let isAct = btn.classList.contains('active');
-            if(p === 3) st3Series.applyOptions({ visible: isAct });
-            if(p === 1) st1Series.applyOptions({ visible: isAct });
-        }
-
-        function togglePivots(btn) {
-            btn.classList.toggle('active');
-            let isAct = btn.classList.contains('active');
+            const chartDom = document.getElementById('tv-chart');
+            if (chart) { chart.remove(); chart = null; }
+            chartDom.innerHTML = ""; 
             
-            if(isAct && currentData) {
-                const pivotLevels = [
-                    { key: 'p', color: '#ff9800', title: 'P' }, 
-                    { key: 'r1', color: '#f23645', title: 'R1' }, { key: 'r2', color: '#f23645', title: 'R2' },
-                    { key: 'r3', color: '#f23645', title: 'R3' }, { key: 'r4', color: '#f23645', title: 'R4' }, { key: 'r5', color: '#f23645', title: 'R5' },
-                    { key: 's1', color: '#089981', title: 'S1' }, { key: 's2', color: '#089981', title: 'S2' },
-                    { key: 's3', color: '#089981', title: 'S3' }, { key: 's4', color: '#089981', title: 'S4' }, { key: 's5', color: '#089981', title: 'S5' }
-                ];
-
-                const groupedByDay = {};
-                currentData.historical_chart_data.forEach(d => {
-                    const dayStr = new Date(d.time * 1000).toDateString();
-                    if(!groupedByDay[dayStr]) groupedByDay[dayStr] = [];
-                    groupedByDay[dayStr].push(d);
-                });
-
-                const days = Object.values(groupedByDay);
-
-                days.forEach((dayData, index) => {
-                    const isLastDay = index === days.length - 1; 
-
-                    pivotLevels.forEach(level => {
-                        const lineData = dayData
-                            .filter(d => d[level.key] !== null)
-                            .map(d => ({ time: d.time, value: d[level.key] }));
-                            
-                        if(lineData.length > 0) {
-                            const l = chart.addLineSeries({ 
-                                color: level.color, 
-                                lineWidth: 1, 
-                                lineStyle: 2, 
-                                title: isLastDay ? level.title : '', 
-                                crosshairMarkerVisible: false,
-                                lastValueVisible: isLastDay 
-                            });
-                            l.setData(lineData);
-                            pivotLines.push(l);
-                        }
-                    });
-                });
-            } else {
-                pivotLines.forEach(l => chart.removeSeries(l));
-                pivotLines = [];
+            // Remove duplicates
+            const uniqueData = [];
+            const seenDates = new Set();
+            for(let i=0; i<data.length; i++) {
+                if(!seenDates.has(data[i].time)) {
+                    seenDates.add(data[i].time);
+                    uniqueData.push(data[i]);
+                }
             }
+
+            chart = LightweightCharts.createChart(chartDom, { 
+                layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc', }, 
+                grid: { vertLines: { color: '#1f2933' }, horzLines: { color: '#1f2933' }, }, 
+                timeScale: { borderColor: '#2b2b43', timeVisible: true, rightOffset: 5, barSpacing: 8 }, 
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
+            });
+            
+            candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
+            candleSeries.setData(uniqueData);
+            
+            // 🔥 GENERATE BUY/SELL MARKERS (SuperTrend Logic)
+            signalMarkers = [];
+            for (let i = 1; i < uniqueData.length; i++) {
+                const prev = uniqueData[i - 1];
+                const curr = uniqueData[i];
+                
+                // Trend changed from Bearish (-1) to Bullish (1) -> BUY
+                if (prev.trend === -1 && curr.trend === 1) {
+                    signalMarkers.push({ time: curr.time, position: 'belowBar', color: '#089981', shape: 'arrowUp', text: 'BUY' });
+                }
+                // Trend changed from Bullish (1) to Bearish (-1) -> SELL
+                else if (prev.trend === 1 && curr.trend === -1) {
+                    signalMarkers.push({ time: curr.time, position: 'aboveBar', color: '#f23645', shape: 'arrowDown', text: 'SELL' });
+                }
+            }
+
+            if(signalsVisible) candleSeries.setMarkers(signalMarkers);
+            chart.timeScale().fitContent();
         }
 
-        goHome();
+        function toggleSignals() {
+            signalsVisible = !signalsVisible;
+            document.getElementById('btnSignal').classList.toggle('active', signalsVisible);
+            if(candleSeries) candleSeries.setMarkers(signalsVisible ? signalMarkers : []);
+        }
+
+        fetchScanner();
     </script>
 </body>
 </html>
