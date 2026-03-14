@@ -26,17 +26,21 @@
         .stock-title { font-size: 32px; font-weight: 900; margin: 0; color: white;} .stock-price { font-size: 26px; font-weight: bold; color: white; }
         .chart-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center;}
         .timeframe-select { background: var(--bg-dark); color: white; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; outline: none;}
-        .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;}
+        .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;}
         .indicator-btn.active { background: rgba(41, 98, 255, 0.2); color: var(--accent-blue); border-color: var(--accent-blue); }
+        
+        /* Specific Style for Alert Button */
+        #btnAutoAlert.active { background: rgba(242, 54, 69, 0.15); color: #f23645; border-color: #f23645; box-shadow: 0 0 10px rgba(242, 54, 69, 0.3); }
+
         #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); }
         
-        /* 🔥 INTERACTIVE CHAT UI CSS */
         .ai-box { background: rgba(41, 98, 255, 0.05); border-left: 4px solid var(--accent-blue); padding: 15px; border-radius: 6px; margin-bottom: 15px;}
         .ai-title { color: white; font-weight: bold; margin-bottom: 10px; font-size: 15px; display: flex; align-items: center; justify-content: space-between;}
         .chat-history { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; padding-right: 5px;}
         .chat-msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; max-width: 85%; }
         .chat-msg.ai { background: var(--card-bg); color: #d1d4dc; border: 1px solid var(--border-color); align-self: flex-start;}
         .chat-msg.user { background: var(--accent-blue); color: white; align-self: flex-end;}
+        .chat-msg.alert { background: rgba(242, 54, 69, 0.1); border-left: 3px solid #f23645; color: white; align-self: flex-start; }
         .chat-input-container { display: flex; gap: 8px; }
         .chat-input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; outline: none; }
         .chat-btn { background: white; color: black; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
@@ -82,6 +86,8 @@
                 </select>
                 <button class="indicator-btn active" id="btnIchimoku" onclick="toggleIchimoku()">Ichimoku Cloud</button>
                 <button class="indicator-btn active" id="btnPivots" onclick="togglePivots()">Pivots (Traditional 15)</button>
+                
+                <button class="indicator-btn" id="btnAutoAlert" onclick="toggleAutoAlert()" style="margin-left: auto;">🚨 Auto AI Alerts: OFF</button>
             </div>
             <div id="tv-chart"></div>
         </div>
@@ -94,11 +100,23 @@
         let pivotLines = [];
         let ichiVisible = true, pivotsVisible = true;
         let currentPrice = 0, currentRsi = 0;
+        
+        // Auto Alert Variables
+        let autoAlertInterval = null;
+        let isAutoAlertOn = false;
 
-        function goHome() { document.getElementById('scanner-view').style.display='block'; document.getElementById('analyzer-view').style.display='none'; document.getElementById('loading').style.display='none'; }
+        function goHome() { 
+            // Stop alerts when going home
+            if(isAutoAlertOn) toggleAutoAlert(); 
+            document.getElementById('scanner-view').style.display='block'; document.getElementById('analyzer-view').style.display='none'; document.getElementById('loading').style.display='none'; 
+        }
         function handleSearch(e) { if(e.key === 'Enter') triggerSearch(); }
         function triggerSearch() { let val = document.getElementById('searchInput').value.trim().toUpperCase().replace(/\s/g, ''); if(val) openAnalyzer(val); }
-        function changeTimeframe() { if(currentSymbol) openAnalyzer(currentSymbol); }
+        
+        function changeTimeframe() { 
+            if(isAutoAlertOn) toggleAutoAlert(); // Turn off alerts if timeframe changes to avoid confusion
+            if(currentSymbol) openAnalyzer(currentSymbol); 
+        }
 
         async function fetchStocks() {
             try {
@@ -136,32 +154,38 @@
 
         function handleChat(e) { if(e.key === 'Enter') sendChatMessage(); }
         
-        function addChatMessage(text, sender) {
+        function addChatMessage(text, sender, isAlert = false) {
             const history = document.getElementById('chatHistory');
             const msgDiv = document.createElement('div');
             msgDiv.className = `chat-msg ${sender}`;
+            if(isAlert) msgDiv.classList.add('alert');
             msgDiv.innerText = text;
             history.appendChild(msgDiv);
             history.scrollTop = history.scrollHeight;
         }
 
-        async function sendChatMessage() {
+        async function sendChatMessage(customMsg = null, isSilent = false) {
             const input = document.getElementById('chatInput');
-            const message = input.value.trim();
+            const message = customMsg || input.value.trim();
             if(!message) return;
             
-            input.value = '';
-            addChatMessage(message, 'user');
-            const tf = document.getElementById('timeframeSelector').value;
+            if(!isSilent) {
+                input.value = '';
+                addChatMessage(message, 'user');
+            }
             
+            const tf = document.getElementById('timeframeSelector').value;
             const loadingId = 'loading-' + Date.now();
             const history = document.getElementById('chatHistory');
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'chat-msg ai';
-            loadingDiv.id = loadingId;
-            loadingDiv.innerText = "Thinking...";
-            history.appendChild(loadingDiv);
-            history.scrollTop = history.scrollHeight;
+            
+            if(!isSilent) {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'chat-msg ai';
+                loadingDiv.id = loadingId;
+                loadingDiv.innerText = "Thinking...";
+                history.appendChild(loadingDiv);
+                history.scrollTop = history.scrollHeight;
+            }
 
             try {
                 const res = await fetch(`${API_BASE_URL}/chat`, {
@@ -170,10 +194,77 @@
                     body: JSON.stringify({ symbol: currentSymbol, timeframe: tf, message: message, price: currentPrice, rsi: currentRsi })
                 });
                 const json = await res.json();
-                document.getElementById(loadingId).remove();
-                if(json.status === 'success') { addChatMessage(json.reply, 'ai'); } 
-                else { addChatMessage("⚠️ Error: " + json.message, 'ai'); }
-            } catch (e) { document.getElementById(loadingId).remove(); addChatMessage("⚠️ Network Error while contacting AI.", 'ai'); }
+                
+                if(!isSilent) document.getElementById(loadingId).remove();
+                
+                if(json.status === 'success') { 
+                    addChatMessage(isSilent ? "🚨 LIVE UPDATE: " + json.reply : json.reply, 'ai', isSilent); 
+                } 
+                else if(!isSilent) { addChatMessage("⚠️ Error: " + json.message, 'ai'); }
+            } catch (e) { 
+                if(!isSilent) { document.getElementById(loadingId).remove(); addChatMessage("⚠️ Network Error while contacting AI.", 'ai'); }
+            }
+        }
+
+        // 🔥 NEW: AUTO ALERT LOGIC
+        function toggleAutoAlert() {
+            isAutoAlertOn = !isAutoAlertOn;
+            const btn = document.getElementById('btnAutoAlert');
+            
+            if(isAutoAlertOn) {
+                btn.classList.add('active');
+                btn.innerText = "🚨 Auto AI Alerts: ON";
+                addChatMessage("🔔 Auto-Alerts activated. I will monitor the live chart and update you every 3 minutes.", 'ai');
+                
+                // Run every 3 minutes (180,000 ms)
+                autoAlertInterval = setInterval(runSilentAnalysis, 180000);
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = "🚨 Auto AI Alerts: OFF";
+                addChatMessage("🔕 Auto-Alerts disabled.", 'ai');
+                clearInterval(autoAlertInterval);
+            }
+        }
+
+        async function runSilentAnalysis() {
+            if(!currentSymbol) return;
+            const tf = document.getElementById('timeframeSelector').value;
+            
+            try {
+                // Silently fetch new market data
+                const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(currentSymbol)}/${tf}`);
+                const json = await res.json();
+                
+                if(json.status === 'success') {
+                    // Update variables
+                    currentPrice = json.data.latest_close;
+                    currentRsi = json.data.historical_chart_data[json.data.historical_chart_data.length - 1].rsi;
+                    
+                    // Update UI Price
+                    document.getElementById('stockPrice').innerText = "₹" + currentPrice;
+                    
+                    // Silently update chart data without recreating
+                    updateChartData(json.data.historical_chart_data);
+
+                    // Ask AI silently
+                    const silentPrompt = `System Auto-Check: The price has moved to ₹${currentPrice} and RSI is ${currentRsi}. Based on Ichimoku/Pivots, is there any new breakout, breakdown, or trend shift happening right now? Keep it strictly to 1 or 2 sentences max.`;
+                    sendChatMessage(silentPrompt, true);
+                }
+            } catch (err) {
+                console.log("Silent analysis failed.");
+            }
+        }
+
+        function updateChartData(data) {
+            if(!chart || !candleSeries) return;
+            const uniqueData = Array.from(new Map(data.map(item => [item.time, item])).values());
+            candleSeries.setData(uniqueData);
+            if(tenkanSeries) tenkanSeries.setData(uniqueData.filter(d => d.tenkan !== null).map(d => ({time: d.time, value: d.tenkan})));
+            if(kijunSeries) kijunSeries.setData(uniqueData.filter(d => d.kijun !== null).map(d => ({time: d.time, value: d.kijun})));
+            if(spanASeries) spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
+            if(spanBSeries) spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
+            if(chikouSeries) chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
+            // Note: We leave pivot lines as they are to avoid flicker during silent updates.
         }
 
         function renderChart(data) {
@@ -187,32 +278,25 @@
             candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
             candleSeries.setData(uniqueData);
             
-            // 🔥 ICHIMOKU CLOUD
+            // ICHIMOKU CLOUD
             tenkanSeries = chart.addLineSeries({ color: '#f23645', lineWidth: 1, title: 'Tenkan', visible: ichiVisible });
             tenkanSeries.setData(uniqueData.filter(d => d.tenkan !== null).map(d => ({time: d.time, value: d.tenkan})));
-            
             kijunSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 1, title: 'Kijun', visible: ichiVisible });
             kijunSeries.setData(uniqueData.filter(d => d.kijun !== null).map(d => ({time: d.time, value: d.kijun})));
-
             spanASeries = chart.addLineSeries({ color: '#ffeb3b', lineWidth: 1, title: 'Span A', visible: ichiVisible });
             spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
-
             spanBSeries = chart.addLineSeries({ color: '#089981', lineWidth: 1, title: 'Span B', visible: ichiVisible });
             spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
-
             chikouSeries = chart.addLineSeries({ color: '#ffffff', lineWidth: 1, lineStyle: 2, title: 'Chikou', visible: ichiVisible });
             chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
 
-            // 🔥 PERFECT PIVOTS FIX (No Boxes & Proper Auto-Scaling)
+            // PERFECT PIVOTS FIX
             const pivotLevels = [
-                { key: 'p', title: 'P' }, 
-                { key: 'r1', title: 'R1' }, { key: 'r2', title: 'R2' }, { key: 'r3', title: 'R3' }, { key: 'r4', title: 'R4' }, { key: 'r5', title: 'R5' },
+                { key: 'p', title: 'P' }, { key: 'r1', title: 'R1' }, { key: 'r2', title: 'R2' }, { key: 'r3', title: 'R3' }, { key: 'r4', title: 'R4' }, { key: 'r5', title: 'R5' },
                 { key: 's1', title: 'S1' }, { key: 's2', title: 'S2' }, { key: 's3', title: 'S3' }, { key: 's4', title: 'S4' }, { key: 's5', title: 'S5' }
             ];
             
             pivotLines = [];
-
-            // Group data by day to draw disconnected lines
             const groupedByDay = {};
             uniqueData.forEach(d => {
                 const dayStr = new Date(d.time * 1000).toDateString();
@@ -221,22 +305,15 @@
             });
 
             const days = Object.values(groupedByDay);
-
             days.forEach((dayData, index) => {
                 const isLastDay = index === days.length - 1; 
-
                 pivotLevels.forEach(level => {
                     const lineData = dayData.filter(d => d[level.key] !== null).map(d => ({time: d.time, value: d[level.key]}));
                     if(lineData.length > 0) {
                         const lineSeries = chart.addLineSeries({
-                            color: '#ff9800', 
-                            lineWidth: 1, 
-                            lineStyle: 0, 
-                            title: isLastDay ? level.title : '', 
-                            crosshairMarkerVisible: false,
-                            lastValueVisible: isLastDay,
-                            visible: pivotsVisible,
-                            autoscaleInfoProvider: () => null, // 🔥 PREVENTS SQUISHING (Chart won't auto-zoom out to fit R5/S5)
+                            color: '#ff9800', lineWidth: 1, lineStyle: 0, title: isLastDay ? level.title : '', 
+                            crosshairMarkerVisible: false, lastValueVisible: isLastDay, visible: pivotsVisible,
+                            autoscaleInfoProvider: () => null, 
                         });
                         lineSeries.setData(lineData);
                         pivotLines.push(lineSeries);
@@ -248,8 +325,7 @@
         }
 
         function toggleIchimoku() { 
-            ichiVisible = !ichiVisible; 
-            document.getElementById('btnIchimoku').classList.toggle('active', ichiVisible); 
+            ichiVisible = !ichiVisible; document.getElementById('btnIchimoku').classList.toggle('active', ichiVisible); 
             if(tenkanSeries) tenkanSeries.applyOptions({visible: ichiVisible}); 
             if(kijunSeries) kijunSeries.applyOptions({visible: ichiVisible}); 
             if(spanASeries) spanASeries.applyOptions({visible: ichiVisible}); 
@@ -258,8 +334,7 @@
         }
 
         function togglePivots() {
-            pivotsVisible = !pivotsVisible;
-            document.getElementById('btnPivots').classList.toggle('active', pivotsVisible);
+            pivotsVisible = !pivotsVisible; document.getElementById('btnPivots').classList.toggle('active', pivotsVisible);
             pivotLines.forEach(line => line.applyOptions({visible: pivotsVisible}));
         }
 
