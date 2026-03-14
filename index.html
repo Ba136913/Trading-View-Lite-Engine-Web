@@ -120,16 +120,21 @@
             if(val) openAnalyzer(val);
         }
 
-        async function fetchScanner() {
+                async function fetchScanner() {
             try {
                 const res = await fetch(`${API_BASE_URL}/swing-scanner`);
                 const json = await res.json();
                 if(json.status === 'success') {
                     renderTable('gainer-body', json.data.top_gainers);
                     renderTable('loser-body', json.data.top_losers);
+                } else {
+                    alert("Scanner Error: " + json.message);
                 }
-            } catch (err) { console.error("Scanner Error", err); }
+            } catch (err) { 
+                alert("Network Error! Render Backend is still sleeping or blocked. Error: " + err.message);
+            }
         }
+
 
         function renderTable(id, data) {
             let html = "";
