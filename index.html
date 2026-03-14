@@ -203,7 +203,7 @@
             chikouSeries = chart.addLineSeries({ color: '#ffffff', lineWidth: 1, lineStyle: 2, title: 'Chikou', visible: ichiVisible });
             chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
 
-            // 🔥 TRADITIONAL PIVOTS (ORANGE)
+            // 🔥 PERFECT PIVOTS FIX (No Boxes & Proper Auto-Scaling)
             const pivotLevels = [
                 { key: 'p', title: 'P' }, 
                 { key: 'r1', title: 'R1' }, { key: 'r2', title: 'R2' }, { key: 'r3', title: 'R3' }, { key: 'r4', title: 'R4' }, { key: 'r5', title: 'R5' },
@@ -211,20 +211,37 @@
             ];
             
             pivotLines = [];
-            pivotLevels.forEach(level => {
-                const lineData = uniqueData.filter(d => d[level.key] !== null).map(d => ({time: d.time, value: d[level.key]}));
-                if (lineData.length > 0) {
-                    const lineSeries = chart.addLineSeries({
-                        color: '#ff9800', // Orange color matching your screenshot
-                        lineWidth: 1,
-                        lineStyle: 0,
-                        title: level.title,
-                        crosshairMarkerVisible: false,
-                        visible: pivotsVisible
-                    });
-                    lineSeries.setData(lineData);
-                    pivotLines.push(lineSeries);
-                }
+
+            // Group data by day to draw disconnected lines
+            const groupedByDay = {};
+            uniqueData.forEach(d => {
+                const dayStr = new Date(d.time * 1000).toDateString();
+                if(!groupedByDay[dayStr]) groupedByDay[dayStr] = [];
+                groupedByDay[dayStr].push(d);
+            });
+
+            const days = Object.values(groupedByDay);
+
+            days.forEach((dayData, index) => {
+                const isLastDay = index === days.length - 1; 
+
+                pivotLevels.forEach(level => {
+                    const lineData = dayData.filter(d => d[level.key] !== null).map(d => ({time: d.time, value: d[level.key]}));
+                    if(lineData.length > 0) {
+                        const lineSeries = chart.addLineSeries({
+                            color: '#ff9800', 
+                            lineWidth: 1, 
+                            lineStyle: 0, 
+                            title: isLastDay ? level.title : '', 
+                            crosshairMarkerVisible: false,
+                            lastValueVisible: isLastDay,
+                            visible: pivotsVisible,
+                            autoscaleInfoProvider: () => null, // 🔥 PREVENTS SQUISHING (Chart won't auto-zoom out to fit R5/S5)
+                        });
+                        lineSeries.setData(lineData);
+                        pivotLines.push(lineSeries);
+                    }
+                });
             });
 
             chart.timeScale().fitContent();
