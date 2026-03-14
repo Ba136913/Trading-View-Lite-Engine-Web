@@ -28,16 +28,15 @@
         .timeframe-select { background: var(--bg-dark); color: white; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; outline: none;}
         .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;}
         .indicator-btn.active { background: rgba(41, 98, 255, 0.2); color: var(--accent-blue); border-color: var(--accent-blue); }
-        
-        /* Specific Style for Alert Button */
         #btnAutoAlert.active { background: rgba(242, 54, 69, 0.15); color: #f23645; border-color: #f23645; box-shadow: 0 0 10px rgba(242, 54, 69, 0.3); }
 
         #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); }
         
-        .ai-box { background: rgba(41, 98, 255, 0.05); border-left: 4px solid var(--accent-blue); padding: 15px; border-radius: 6px; margin-bottom: 15px;}
+        /* CHAT UI CSS */
+        .ai-box { background: rgba(41, 98, 255, 0.05); border-left: 4px solid var(--accent-blue); padding: 15px; border-radius: 6px; margin-bottom: 20px;}
         .ai-title { color: white; font-weight: bold; margin-bottom: 10px; font-size: 15px; display: flex; align-items: center; justify-content: space-between;}
-        .chat-history { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; padding-right: 5px;}
-        .chat-msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; max-width: 85%; }
+        .chat-history { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; padding-right: 5px;}
+        .chat-msg { padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.6; max-width: 90%; white-space: pre-wrap;}
         .chat-msg.ai { background: var(--card-bg); color: #d1d4dc; border: 1px solid var(--border-color); align-self: flex-start;}
         .chat-msg.user { background: var(--accent-blue); color: white; align-self: flex-end;}
         .chat-msg.alert { background: rgba(242, 54, 69, 0.1); border-left: 3px solid #f23645; color: white; align-self: flex-start; }
@@ -61,6 +60,17 @@
         <div id="loading" class="loading"><h2 id="loading-title">🧠 Analyzing Markets...</h2><p id="loading-text">Loading chart and technicals.</p></div>
 
         <div id="scanner-view">
+            <div class="ai-box">
+                <div class="ai-title">🤖 CHADS MARKET MENTOR (General Chat)</div>
+                <div class="chat-history" id="homeChatHistory">
+                    <div class="chat-msg ai">Hello! I am your trading mentor. Ask me about strategies, indicators, or trading concepts! (Note: I cannot fetch live website data like today's top gainers automatically).</div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="homeChatInput" class="chat-input" placeholder="Ask general market questions..." onkeypress="handleHomeChat(event)">
+                    <button class="chat-btn" onclick="sendHomeChatMessage()">Send</button>
+                </div>
+            </div>
+
             <h2 class="section-title">🔥 185+ F&O Stock Directory</h2>
             <div id="stock-list" class="stock-grid">
                 <div style="color:var(--text-muted);">Loading F&O Stocks...</div>
@@ -72,7 +82,7 @@
             <div class="terminal-header"><div><h1 class="stock-title" id="stockName">--</h1></div><div class="stock-price" id="stockPrice">₹--</div></div>
             
             <div class="ai-box">
-                <div class="ai-title">🤖 CHADS AI ENGINE</div>
+                <div class="ai-title">🤖 CHADS AI ENGINE (Stock Analyzer)</div>
                 <div class="chat-history" id="chatHistory"></div>
                 <div class="chat-input-container">
                     <input type="text" id="chatInput" class="chat-input" placeholder="Ask AI about this stock, strategy, or targets..." onkeypress="handleChat(event)">
@@ -86,7 +96,6 @@
                 </select>
                 <button class="indicator-btn active" id="btnIchimoku" onclick="toggleIchimoku()">Ichimoku Cloud</button>
                 <button class="indicator-btn active" id="btnPivots" onclick="togglePivots()">Pivots (Traditional 15)</button>
-                
                 <button class="indicator-btn" id="btnAutoAlert" onclick="toggleAutoAlert()" style="margin-left: auto;">🚨 Auto AI Alerts: OFF</button>
             </div>
             <div id="tv-chart"></div>
@@ -96,27 +105,18 @@
     <script>
         const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
         let chart=null, candleSeries=null, currentSymbol="";
-        let tenkanSeries=null, kijunSeries=null, spanASeries=null, spanBSeries=null, chikouSeries=null;
-        let pivotLines = [];
+        let tenkanSeries=null, kijunSeries=null, spanASeries=null, spanBSeries=null, chikouSeries=null, pivotLines = [];
         let ichiVisible = true, pivotsVisible = true;
         let currentPrice = 0, currentRsi = 0;
-        
-        // Auto Alert Variables
-        let autoAlertInterval = null;
-        let isAutoAlertOn = false;
+        let autoAlertInterval = null, isAutoAlertOn = false;
 
         function goHome() { 
-            // Stop alerts when going home
             if(isAutoAlertOn) toggleAutoAlert(); 
             document.getElementById('scanner-view').style.display='block'; document.getElementById('analyzer-view').style.display='none'; document.getElementById('loading').style.display='none'; 
         }
         function handleSearch(e) { if(e.key === 'Enter') triggerSearch(); }
         function triggerSearch() { let val = document.getElementById('searchInput').value.trim().toUpperCase().replace(/\s/g, ''); if(val) openAnalyzer(val); }
-        
-        function changeTimeframe() { 
-            if(isAutoAlertOn) toggleAutoAlert(); // Turn off alerts if timeframe changes to avoid confusion
-            if(currentSymbol) openAnalyzer(currentSymbol); 
-        }
+        function changeTimeframe() { if(isAutoAlertOn) toggleAutoAlert(); if(currentSymbol) openAnalyzer(currentSymbol); }
 
         async function fetchStocks() {
             try {
@@ -130,6 +130,48 @@
             } catch (err) { document.getElementById('stock-list').innerHTML = `<div style="color:var(--bear-red);">Server waking up. Please refresh the page.</div>`; }
         }
 
+        // 🔥 NEW: HOME PAGE CHAT LOGIC
+        function handleHomeChat(e) { if(e.key === 'Enter') sendHomeChatMessage(); }
+        async function sendHomeChatMessage() {
+            const input = document.getElementById('homeChatInput');
+            const message = input.value.trim();
+            if(!message) return;
+            
+            input.value = '';
+            
+            const history = document.getElementById('homeChatHistory');
+            const userDiv = document.createElement('div');
+            userDiv.className = 'chat-msg user'; userDiv.innerText = message;
+            history.appendChild(userDiv);
+            history.scrollTop = history.scrollHeight;
+
+            const loadingId = 'loading-home-' + Date.now();
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'chat-msg ai'; loadingDiv.id = loadingId; loadingDiv.innerText = "Thinking...";
+            history.appendChild(loadingDiv);
+            history.scrollTop = history.scrollHeight;
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_home: true, message: message, symbol: "General", timeframe: "", price: 0, rsi: 0 })
+                });
+                const json = await res.json();
+                document.getElementById(loadingId).remove();
+                
+                const aiDiv = document.createElement('div');
+                aiDiv.className = 'chat-msg ai';
+                aiDiv.innerText = json.status === 'success' ? json.reply : "⚠️ Error: " + json.message;
+                history.appendChild(aiDiv);
+                history.scrollTop = history.scrollHeight;
+            } catch (e) { 
+                document.getElementById(loadingId).remove(); 
+                const errDiv = document.createElement('div'); errDiv.className = 'chat-msg ai'; errDiv.innerText = "⚠️ Network Error."; history.appendChild(errDiv);
+            }
+        }
+
+        // ANALYZER LOGIC
         async function openAnalyzer(symbol) {
             currentSymbol = symbol;
             const tf = document.getElementById('timeframeSelector').value;
@@ -142,10 +184,7 @@
                 if(json.status === 'success') {
                     document.getElementById('loading').style.display='none'; document.getElementById('analyzer-view').style.display='block';
                     document.getElementById('stockName').innerText = json.data.symbol; document.getElementById('stockPrice').innerText = "₹" + json.data.latest_close;
-                    
-                    currentPrice = json.data.latest_close;
-                    currentRsi = json.data.historical_chart_data[json.data.historical_chart_data.length - 1].rsi;
-                    
+                    currentPrice = json.data.latest_close; currentRsi = json.data.historical_chart_data[json.data.historical_chart_data.length - 1].rsi;
                     addChatMessage(json.data.ai_prediction, 'ai');
                     renderChart(json.data.historical_chart_data);
                 } else { alert("⚠️ Error: " + json.message); goHome(); }
@@ -153,7 +192,6 @@
         }
 
         function handleChat(e) { if(e.key === 'Enter') sendChatMessage(); }
-        
         function addChatMessage(text, sender, isAlert = false) {
             const history = document.getElementById('chatHistory');
             const msgDiv = document.createElement('div');
@@ -169,58 +207,38 @@
             const message = customMsg || input.value.trim();
             if(!message) return;
             
-            if(!isSilent) {
-                input.value = '';
-                addChatMessage(message, 'user');
-            }
-            
+            if(!isSilent) { input.value = ''; addChatMessage(message, 'user'); }
             const tf = document.getElementById('timeframeSelector').value;
-            const loadingId = 'loading-' + Date.now();
             const history = document.getElementById('chatHistory');
+            const loadingId = 'loading-' + Date.now();
             
             if(!isSilent) {
                 const loadingDiv = document.createElement('div');
-                loadingDiv.className = 'chat-msg ai';
-                loadingDiv.id = loadingId;
-                loadingDiv.innerText = "Thinking...";
-                history.appendChild(loadingDiv);
-                history.scrollTop = history.scrollHeight;
+                loadingDiv.className = 'chat-msg ai'; loadingDiv.id = loadingId; loadingDiv.innerText = "Thinking...";
+                history.appendChild(loadingDiv); history.scrollTop = history.scrollHeight;
             }
 
             try {
                 const res = await fetch(`${API_BASE_URL}/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol: currentSymbol, timeframe: tf, message: message, price: currentPrice, rsi: currentRsi })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol: currentSymbol, timeframe: tf, message: message, price: currentPrice, rsi: currentRsi, is_home: false })
                 });
                 const json = await res.json();
-                
                 if(!isSilent) document.getElementById(loadingId).remove();
-                
-                if(json.status === 'success') { 
-                    addChatMessage(isSilent ? "🚨 LIVE UPDATE: " + json.reply : json.reply, 'ai', isSilent); 
-                } 
+                if(json.status === 'success') { addChatMessage(isSilent ? "🚨 LIVE UPDATE: " + json.reply : json.reply, 'ai', isSilent); } 
                 else if(!isSilent) { addChatMessage("⚠️ Error: " + json.message, 'ai'); }
-            } catch (e) { 
-                if(!isSilent) { document.getElementById(loadingId).remove(); addChatMessage("⚠️ Network Error while contacting AI.", 'ai'); }
-            }
+            } catch (e) { if(!isSilent) { document.getElementById(loadingId).remove(); addChatMessage("⚠️ Network Error.", 'ai'); } }
         }
 
-        // 🔥 NEW: AUTO ALERT LOGIC
         function toggleAutoAlert() {
             isAutoAlertOn = !isAutoAlertOn;
             const btn = document.getElementById('btnAutoAlert');
-            
             if(isAutoAlertOn) {
-                btn.classList.add('active');
-                btn.innerText = "🚨 Auto AI Alerts: ON";
-                addChatMessage("🔔 Auto-Alerts activated. I will monitor the live chart and update you every 3 minutes.", 'ai');
-                
-                // Run every 3 minutes (180,000 ms)
+                btn.classList.add('active'); btn.innerText = "🚨 Auto AI Alerts: ON";
+                addChatMessage("🔔 Auto-Alerts activated. Monitoring live chart every 3 minutes.", 'ai');
                 autoAlertInterval = setInterval(runSilentAnalysis, 180000);
             } else {
-                btn.classList.remove('active');
-                btn.innerText = "🚨 Auto AI Alerts: OFF";
+                btn.classList.remove('active'); btn.innerText = "🚨 Auto AI Alerts: OFF";
                 addChatMessage("🔕 Auto-Alerts disabled.", 'ai');
                 clearInterval(autoAlertInterval);
             }
@@ -229,30 +247,17 @@
         async function runSilentAnalysis() {
             if(!currentSymbol) return;
             const tf = document.getElementById('timeframeSelector').value;
-            
             try {
-                // Silently fetch new market data
                 const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(currentSymbol)}/${tf}`);
                 const json = await res.json();
-                
                 if(json.status === 'success') {
-                    // Update variables
-                    currentPrice = json.data.latest_close;
-                    currentRsi = json.data.historical_chart_data[json.data.historical_chart_data.length - 1].rsi;
-                    
-                    // Update UI Price
+                    currentPrice = json.data.latest_close; currentRsi = json.data.historical_chart_data[json.data.historical_chart_data.length - 1].rsi;
                     document.getElementById('stockPrice').innerText = "₹" + currentPrice;
-                    
-                    // Silently update chart data without recreating
                     updateChartData(json.data.historical_chart_data);
-
-                    // Ask AI silently
-                    const silentPrompt = `System Auto-Check: The price has moved to ₹${currentPrice} and RSI is ${currentRsi}. Based on Ichimoku/Pivots, is there any new breakout, breakdown, or trend shift happening right now? Keep it strictly to 1 or 2 sentences max.`;
+                    const silentPrompt = `System Check: The price is ₹${currentPrice} and RSI is ${currentRsi}. Analyze the Ichimoku and Pivots. Is there a breakout, breakdown, or trend shift happening right now?`;
                     sendChatMessage(silentPrompt, true);
                 }
-            } catch (err) {
-                console.log("Silent analysis failed.");
-            }
+            } catch (err) {}
         }
 
         function updateChartData(data) {
@@ -264,79 +269,43 @@
             if(spanASeries) spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
             if(spanBSeries) spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
             if(chikouSeries) chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
-            // Note: We leave pivot lines as they are to avoid flicker during silent updates.
         }
 
         function renderChart(data) {
             const chartDom = document.getElementById('tv-chart');
             if(chart) { chart.remove(); chart=null; }
             chartDom.innerHTML = ""; 
-            
             const uniqueData = Array.from(new Map(data.map(item => [item.time, item])).values());
             chart = LightweightCharts.createChart(chartDom, { layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc', }, grid: { vertLines: { color: '#1f2933' }, horzLines: { color: '#1f2933' }, }, timeScale: { borderColor: '#2b2b43', timeVisible: true, rightOffset: 5 }, crosshair: { mode: LightweightCharts.CrosshairMode.Normal }});
-            
             candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
             candleSeries.setData(uniqueData);
             
-            // ICHIMOKU CLOUD
-            tenkanSeries = chart.addLineSeries({ color: '#f23645', lineWidth: 1, title: 'Tenkan', visible: ichiVisible });
-            tenkanSeries.setData(uniqueData.filter(d => d.tenkan !== null).map(d => ({time: d.time, value: d.tenkan})));
-            kijunSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 1, title: 'Kijun', visible: ichiVisible });
-            kijunSeries.setData(uniqueData.filter(d => d.kijun !== null).map(d => ({time: d.time, value: d.kijun})));
-            spanASeries = chart.addLineSeries({ color: '#ffeb3b', lineWidth: 1, title: 'Span A', visible: ichiVisible });
-            spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
-            spanBSeries = chart.addLineSeries({ color: '#089981', lineWidth: 1, title: 'Span B', visible: ichiVisible });
-            spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
-            chikouSeries = chart.addLineSeries({ color: '#ffffff', lineWidth: 1, lineStyle: 2, title: 'Chikou', visible: ichiVisible });
-            chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
+            tenkanSeries = chart.addLineSeries({ color: '#f23645', lineWidth: 1, title: 'Tenkan', visible: ichiVisible }); tenkanSeries.setData(uniqueData.filter(d => d.tenkan !== null).map(d => ({time: d.time, value: d.tenkan})));
+            kijunSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 1, title: 'Kijun', visible: ichiVisible }); kijunSeries.setData(uniqueData.filter(d => d.kijun !== null).map(d => ({time: d.time, value: d.kijun})));
+            spanASeries = chart.addLineSeries({ color: '#ffeb3b', lineWidth: 1, title: 'Span A', visible: ichiVisible }); spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
+            spanBSeries = chart.addLineSeries({ color: '#089981', lineWidth: 1, title: 'Span B', visible: ichiVisible }); spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
+            chikouSeries = chart.addLineSeries({ color: '#ffffff', lineWidth: 1, lineStyle: 2, title: 'Chikou', visible: ichiVisible }); chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
 
-            // PERFECT PIVOTS FIX
-            const pivotLevels = [
-                { key: 'p', title: 'P' }, { key: 'r1', title: 'R1' }, { key: 'r2', title: 'R2' }, { key: 'r3', title: 'R3' }, { key: 'r4', title: 'R4' }, { key: 'r5', title: 'R5' },
-                { key: 's1', title: 'S1' }, { key: 's2', title: 'S2' }, { key: 's3', title: 'S3' }, { key: 's4', title: 'S4' }, { key: 's5', title: 'S5' }
-            ];
-            
+            const pivotLevels = [ { key: 'p', title: 'P' }, { key: 'r1', title: 'R1' }, { key: 'r2', title: 'R2' }, { key: 'r3', title: 'R3' }, { key: 'r4', title: 'R4' }, { key: 'r5', title: 'R5' }, { key: 's1', title: 'S1' }, { key: 's2', title: 'S2' }, { key: 's3', title: 'S3' }, { key: 's4', title: 'S4' }, { key: 's5', title: 'S5' } ];
             pivotLines = [];
             const groupedByDay = {};
-            uniqueData.forEach(d => {
-                const dayStr = new Date(d.time * 1000).toDateString();
-                if(!groupedByDay[dayStr]) groupedByDay[dayStr] = [];
-                groupedByDay[dayStr].push(d);
-            });
-
+            uniqueData.forEach(d => { const dayStr = new Date(d.time * 1000).toDateString(); if(!groupedByDay[dayStr]) groupedByDay[dayStr] = []; groupedByDay[dayStr].push(d); });
             const days = Object.values(groupedByDay);
             days.forEach((dayData, index) => {
                 const isLastDay = index === days.length - 1; 
                 pivotLevels.forEach(level => {
                     const lineData = dayData.filter(d => d[level.key] !== null).map(d => ({time: d.time, value: d[level.key]}));
                     if(lineData.length > 0) {
-                        const lineSeries = chart.addLineSeries({
-                            color: '#ff9800', lineWidth: 1, lineStyle: 0, title: isLastDay ? level.title : '', 
-                            crosshairMarkerVisible: false, lastValueVisible: isLastDay, visible: pivotsVisible,
-                            autoscaleInfoProvider: () => null, 
-                        });
-                        lineSeries.setData(lineData);
-                        pivotLines.push(lineSeries);
+                        const lineSeries = chart.addLineSeries({ color: '#ff9800', lineWidth: 1, lineStyle: 0, title: isLastDay ? level.title : '', crosshairMarkerVisible: false, lastValueVisible: isLastDay, visible: pivotsVisible, autoscaleInfoProvider: () => null, });
+                        lineSeries.setData(lineData); pivotLines.push(lineSeries);
                     }
                 });
             });
-
             chart.timeScale().fitContent();
         }
 
-        function toggleIchimoku() { 
-            ichiVisible = !ichiVisible; document.getElementById('btnIchimoku').classList.toggle('active', ichiVisible); 
-            if(tenkanSeries) tenkanSeries.applyOptions({visible: ichiVisible}); 
-            if(kijunSeries) kijunSeries.applyOptions({visible: ichiVisible}); 
-            if(spanASeries) spanASeries.applyOptions({visible: ichiVisible}); 
-            if(spanBSeries) spanBSeries.applyOptions({visible: ichiVisible}); 
-            if(chikouSeries) chikouSeries.applyOptions({visible: ichiVisible}); 
-        }
-
-        function togglePivots() {
-            pivotsVisible = !pivotsVisible; document.getElementById('btnPivots').classList.toggle('active', pivotsVisible);
-            pivotLines.forEach(line => line.applyOptions({visible: pivotsVisible}));
-        }
+        function toggleIchimoku() { ichiVisible = !ichiVisible; document.getElementById('btnIchimoku').classList.toggle('active', ichiVisible); if(tenkanSeries) tenkanSeries.applyOptions({visible: ichiVisible}); if(kijunSeries) kijunSeries.applyOptions({visible: ichiVisible}); if(spanASeries) spanASeries.applyOptions({visible: ichiVisible}); if(spanBSeries) spanBSeries.applyOptions({visible: ichiVisible}); if(chikouSeries) chikouSeries.applyOptions({visible: ichiVisible}); }
+        function togglePivots() { pivotsVisible = !pivotsVisible; document.getElementById('btnPivots').classList.toggle('active', pivotsVisible); pivotLines.forEach(line => line.applyOptions({visible: pivotsVisible})); }
 
         fetchStocks();
     </script>
