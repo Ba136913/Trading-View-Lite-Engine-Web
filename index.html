@@ -210,7 +210,7 @@
                         renderTradingViewChart(json.data.historical_chart_data);
                     } else {
                         document.getElementById('loading').style.display = 'none';
-                        alert("⚠️ Error: " + json.message);
+                        alert("⚠️ Error: " + (json.message || json.detail || "Backend is still updating. Please wait 2 minutes!"));
                         goHome();
                     }
                 } catch(e) {
