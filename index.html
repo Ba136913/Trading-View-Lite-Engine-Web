@@ -4,24 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chads TV Terminal</title>
-    <script src="[https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js](https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js)"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
             --bg-dark: #0f1115; --card-bg: #131722; --text-main: #d1d4dc; --text-muted: #787b86;
             --bull-green: #089981; --bear-red: #f23645; --border-color: #2b2b43; --accent-blue: #2962ff;
         }
         body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0;}
+        
         .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;}
         .logo { font-size: 20px; font-weight: 800; cursor: pointer; color: white; }
         .search-box { display: flex; gap: 8px; width: 100%; max-width: 400px;}
         .search-input { flex: 1; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; outline: none; text-transform: uppercase;}
         .search-input:focus { border-color: var(--accent-blue); }
         .btn { background: var(--accent-blue); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; white-space: nowrap;}
+        
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         #scanner-view { display: block; } #analyzer-view { display: none; }
         .loading { text-align: center; padding: 80px 20px; font-size: 18px; color: var(--text-muted); display: none;}
+        
         .section-title { margin-top: 10px; margin-bottom: 20px; font-size: 22px; font-weight: 800; color: white; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
         .card { background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; }
         .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-size: 16px; font-weight: 800; }
         table { width: 100%; border-collapse: collapse; }
@@ -30,12 +34,15 @@
         .clickable-row { cursor: pointer; transition: 0.2s; }
         .clickable-row:hover { background-color: rgba(41, 98, 255, 0.1); }
         .pct-green { color: var(--bull-green); font-weight: bold; } .pct-red { color: var(--bear-red); font-weight: bold; }
+        
         .terminal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
         .stock-title { font-size: 28px; font-weight: 900; margin: 0; color: white;} .stock-price { font-size: 24px; font-weight: bold; color: white; }
+        
         .chart-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;}
         .indicator-btn.active { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
         #tv-chart { width: 100%; height: 550px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); }
+
         @media (max-width: 768px) {
             .grid-container { grid-template-columns: 1fr; }
             #tv-chart { height: 450px; }
@@ -55,8 +62,8 @@
 
     <div class="container">
         <div id="loading" class="loading">
-            <h2>🧠 Engine Processing...</h2>
-            <p>Loading TradingView Experience & Intraday Matrix.</p>
+            <h2 id="loading-title">🧠 Engine Processing...</h2>
+            <p id="loading-text">Loading TradingView Experience & Intraday Matrix.</p>
         </div>
 
         <div id="scanner-view">
@@ -100,7 +107,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = "[https://trading-view-lite-engine.onrender.com/api](https://trading-view-lite-engine.onrender.com/api)"; 
+        const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
         let chart = null, candleSeries = null;
         let st3Series = null, st1Series = null;
         let pivotLines = [];
@@ -120,21 +127,30 @@
             if(val) openAnalyzer(val);
         }
 
-                async function fetchScanner() {
+        // 🔥 SMART FETCH: Handles Render Sleep Mode gracefully
+        async function fetchScanner() {
+            document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3">Fetching data...</td></tr>`;
+            document.getElementById('loser-body').innerHTML = `<tr><td colspan="3">Fetching data...</td></tr>`;
+            
             try {
                 const res = await fetch(`${API_BASE_URL}/swing-scanner`);
-                const json = await res.json();
-                if(json.status === 'success') {
-                    renderTable('gainer-body', json.data.top_gainers);
-                    renderTable('loser-body', json.data.top_losers);
-                } else {
-                    alert("Scanner Error: " + json.message);
+                const text = await res.text(); // Fetch as raw text first
+                
+                try {
+                    const json = JSON.parse(text); // Try parsing
+                    if(json.status === 'success') {
+                        renderTable('gainer-body', json.data.top_gainers);
+                        renderTable('loser-body', json.data.top_losers);
+                    }
+                } catch(e) {
+                    // JSON parsing failed = Render sent HTML sleeping page
+                    document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--accent-blue);">Server waking up... Please refresh in 30 seconds. ⏱️</td></tr>`;
+                    document.getElementById('loser-body').innerHTML = `<tr><td colspan="3" style="color:var(--accent-blue);">Server waking up... Please refresh in 30 seconds. ⏱️</td></tr>`;
                 }
             } catch (err) { 
-                alert("Network Error! Render Backend is still sleeping or blocked. Error: " + err.message);
+                document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--bear-red);">Network Error. Server is down.</td></tr>`;
             }
         }
-
 
         function renderTable(id, data) {
             let html = "";
@@ -157,25 +173,33 @@
             document.getElementById('scanner-view').style.display = 'none';
             document.getElementById('analyzer-view').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
+            document.getElementById('loading-title').innerText = "🧠 Engine Processing...";
+            document.getElementById('loading-text').innerText = "Loading TradingView Experience & Intraday Matrix.";
             document.getElementById('searchInput').value = ''; 
 
             try {
                 const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(symbol)}`);
-                const json = await res.json();
+                const text = await res.text();
+                
+                try {
+                    const json = JSON.parse(text);
+                    if(json.status === 'success') {
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('analyzer-view').style.display = 'block';
+                        
+                        currentData = json.data;
+                        document.getElementById('stockName').innerText = currentData.symbol;
+                        document.getElementById('stockPrice').innerText = "₹" + currentData.latest_close;
 
-                if(json.status === 'success') {
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('analyzer-view').style.display = 'block';
-                    
-                    currentData = json.data;
-                    document.getElementById('stockName').innerText = currentData.symbol;
-                    document.getElementById('stockPrice').innerText = "₹" + currentData.latest_close;
-
-                    renderTradingViewChart(currentData.historical_chart_data);
-                } else {
-                    document.getElementById('loading').style.display = 'none';
-                    alert("⚠️ Error: " + json.message);
-                    goHome();
+                        renderTradingViewChart(currentData.historical_chart_data);
+                    } else {
+                        document.getElementById('loading').style.display = 'none';
+                        alert("⚠️ Error: " + json.message);
+                        goHome();
+                    }
+                } catch(e) {
+                    document.getElementById('loading-title').innerText = "⏳ Waking Up Backend";
+                    document.getElementById('loading-text').innerText = "Free server is waking up from sleep. Please wait 30 seconds and search again.";
                 }
             } catch (err) {
                 document.getElementById('loading').style.display = 'none';
