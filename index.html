@@ -47,7 +47,7 @@
     </div>
 
     <div class="container">
-        <div id="loading" class="loading"><h2 id="loading-title">🧠 Analyzing Markets...</h2><p id="loading-text">Scanning 120+ F&O Stocks for setups.</p></div>
+        <div id="loading" class="loading"><h2 id="loading-title">🧠 Analyzing Markets...</h2><p id="loading-text">Scanning F&O Stocks for setups.</p></div>
 
         <div id="scanner-view">
             <h2 class="section-title">🔥 F&O Market Heat</h2>
@@ -84,8 +84,8 @@
         function changeTimeframe() { if(currentSymbol) openAnalyzer(currentSymbol); }
 
         async function fetchScanner() {
-            document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3">Scanning 120+ Stocks...</td></tr>`;
-            document.getElementById('loser-body').innerHTML = `<tr><td colspan="3">Scanning 120+ Stocks...</td></tr>`;
+            document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3">Scanning Stocks...</td></tr>`;
+            document.getElementById('loser-body').innerHTML = `<tr><td colspan="3">Scanning Stocks...</td></tr>`;
             try {
                 const res = await fetch(`${API_BASE_URL}/swing-scanner`);
                 const text = await res.text();
@@ -96,7 +96,7 @@
                         renderTable('loser-body', json.data.top_losers);
                     }
                 } catch(e) {
-                    document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--accent-blue);">Server waking up...</td></tr>`;
+                    document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--accent-blue);">Server waking up... wait 10s.</td></tr>`;
                     setTimeout(fetchScanner, 10000);
                 }
             } catch (err) { setTimeout(fetchScanner, 5000); }
@@ -123,9 +123,14 @@
                         document.getElementById('stockName').innerText = json.data.symbol; document.getElementById('stockPrice').innerText = "₹" + json.data.latest_close;
                         document.getElementById('aiText').innerText = json.data.ai_prediction;
                         renderChart(json.data.historical_chart_data);
-                    } else { alert("⚠️ " + json.message); goHome(); }
-                } catch(e) { setTimeout(()=>openAnalyzer(symbol), 8000); }
-            } catch (err) { alert("Connection Error."); goHome(); }
+                    } else { 
+                        alert("⚠️ Error: " + json.message); 
+                        goHome(); 
+                    }
+                } catch(e) { 
+                    alert("⚠️ Server busy. Try again."); goHome(); 
+                }
+            } catch (err) { alert("⚠️ Network Error."); goHome(); }
         }
 
         function renderChart(data) {
@@ -146,7 +151,6 @@
             ema21Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 2, title: 'EMA 21' });
             ema21Series.setData(uniqueData.filter(d => d.ema21 !== null).map(d => ({time: d.time, value: d.ema21})));
 
-            // 🔥 ADVANCED CONFLUENCE SIGNALS
             signalMarkers = [];
             for (let i = 2; i < uniqueData.length; i++) {
                 const curr = uniqueData[i]; const prev = uniqueData[i-1];
@@ -154,7 +158,6 @@
                 let isEmaBullish = curr.ema9 > curr.ema21; let isEmaBearish = curr.ema9 < curr.ema21;
                 let isRsiBullish = curr.rsi > 50; let isRsiBearish = curr.rsi < 50;
                 
-                // SuperTrend changed AND EMAs aligned AND Momentum is with us = STRONG BUY
                 if (prev.trend === -1 && curr.trend === 1 && isEmaBullish && isRsiBullish) {
                     signalMarkers.push({ time: curr.time, position: 'belowBar', color: '#089981', shape: 'arrowUp', text: 'STRONG BUY' });
                 }
