@@ -81,6 +81,7 @@
                     <option value="5m" selected>5 Minutes</option><option value="15m">15 Minutes</option><option value="60m">1 Hour</option><option value="1d">1 Day</option>
                 </select>
                 <button class="indicator-btn active" id="btnIchimoku" onclick="toggleIchimoku()">Ichimoku Cloud</button>
+                <button class="indicator-btn active" id="btnPivots" onclick="togglePivots()">Pivots (Traditional 15)</button>
             </div>
             <div id="tv-chart"></div>
         </div>
@@ -90,7 +91,8 @@
         const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
         let chart=null, candleSeries=null, currentSymbol="";
         let tenkanSeries=null, kijunSeries=null, spanASeries=null, spanBSeries=null, chikouSeries=null;
-        let ichiVisible = true;
+        let pivotLines = [];
+        let ichiVisible = true, pivotsVisible = true;
         let currentPrice = 0, currentRsi = 0;
 
         function goHome() { document.getElementById('scanner-view').style.display='block'; document.getElementById('analyzer-view').style.display='none'; document.getElementById('loading').style.display='none'; }
@@ -185,21 +187,45 @@
             candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
             candleSeries.setData(uniqueData);
             
-            // 🔥 ICHIMOKU CLOUD LINES
-            tenkanSeries = chart.addLineSeries({ color: '#f23645', lineWidth: 1, title: 'Tenkan (Red)' });
+            // 🔥 ICHIMOKU CLOUD
+            tenkanSeries = chart.addLineSeries({ color: '#f23645', lineWidth: 1, title: 'Tenkan', visible: ichiVisible });
             tenkanSeries.setData(uniqueData.filter(d => d.tenkan !== null).map(d => ({time: d.time, value: d.tenkan})));
             
-            kijunSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 1, title: 'Kijun (Blue)' });
+            kijunSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 1, title: 'Kijun', visible: ichiVisible });
             kijunSeries.setData(uniqueData.filter(d => d.kijun !== null).map(d => ({time: d.time, value: d.kijun})));
 
-            spanASeries = chart.addLineSeries({ color: '#ffeb3b', lineWidth: 1, title: 'Span A (Yellow)' });
+            spanASeries = chart.addLineSeries({ color: '#ffeb3b', lineWidth: 1, title: 'Span A', visible: ichiVisible });
             spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
 
-            spanBSeries = chart.addLineSeries({ color: '#089981', lineWidth: 1, title: 'Span B (Green)' });
+            spanBSeries = chart.addLineSeries({ color: '#089981', lineWidth: 1, title: 'Span B', visible: ichiVisible });
             spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
 
-            chikouSeries = chart.addLineSeries({ color: '#ffffff', lineWidth: 1, lineStyle: 2, title: 'Chikou (White)' });
+            chikouSeries = chart.addLineSeries({ color: '#ffffff', lineWidth: 1, lineStyle: 2, title: 'Chikou', visible: ichiVisible });
             chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
+
+            // 🔥 TRADITIONAL PIVOTS (ORANGE)
+            const pivotLevels = [
+                { key: 'p', title: 'P' }, 
+                { key: 'r1', title: 'R1' }, { key: 'r2', title: 'R2' }, { key: 'r3', title: 'R3' }, { key: 'r4', title: 'R4' }, { key: 'r5', title: 'R5' },
+                { key: 's1', title: 'S1' }, { key: 's2', title: 'S2' }, { key: 's3', title: 'S3' }, { key: 's4', title: 'S4' }, { key: 's5', title: 'S5' }
+            ];
+            
+            pivotLines = [];
+            pivotLevels.forEach(level => {
+                const lineData = uniqueData.filter(d => d[level.key] !== null).map(d => ({time: d.time, value: d[level.key]}));
+                if (lineData.length > 0) {
+                    const lineSeries = chart.addLineSeries({
+                        color: '#ff9800', // Orange color matching your screenshot
+                        lineWidth: 1,
+                        lineStyle: 0,
+                        title: level.title,
+                        crosshairMarkerVisible: false,
+                        visible: pivotsVisible
+                    });
+                    lineSeries.setData(lineData);
+                    pivotLines.push(lineSeries);
+                }
+            });
 
             chart.timeScale().fitContent();
         }
@@ -212,6 +238,12 @@
             if(spanASeries) spanASeries.applyOptions({visible: ichiVisible}); 
             if(spanBSeries) spanBSeries.applyOptions({visible: ichiVisible}); 
             if(chikouSeries) chikouSeries.applyOptions({visible: ichiVisible}); 
+        }
+
+        function togglePivots() {
+            pivotsVisible = !pivotsVisible;
+            document.getElementById('btnPivots').classList.toggle('active', pivotsVisible);
+            pivotLines.forEach(line => line.applyOptions({visible: pivotsVisible}));
         }
 
         fetchStocks();
