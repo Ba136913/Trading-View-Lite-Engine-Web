@@ -6,55 +6,35 @@
     <title>Chads Pro Terminal</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <style>
-        :root {
-            --bg-dark: #0f1115; --card-bg: #131722; --text-main: #d1d4dc; --text-muted: #787b86;
-            --bull-green: #089981; --bear-red: #f23645; --border-color: #2b2b43; --accent-blue: #2962ff;
-        }
+        :root { --bg-dark: #0f1115; --card-bg: #131722; --text-main: #d1d4dc; --text-muted: #787b86; --bull-green: #089981; --bear-red: #f23645; --border-color: #2b2b43; --accent-blue: #2962ff; }
         body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0;}
-        
         .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;}
         .logo { font-size: 20px; font-weight: 900; cursor: pointer; color: white; letter-spacing: 1px;}
         .search-box { display: flex; gap: 8px; width: 100%; max-width: 400px;}
         .search-input { flex: 1; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; outline: none; text-transform: uppercase;}
-        .search-input:focus { border-color: var(--accent-blue); }
         .btn { background: var(--accent-blue); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;}
-        
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         #scanner-view { display: block; } #analyzer-view { display: none; }
         .loading { text-align: center; padding: 80px 20px; font-size: 18px; color: var(--text-muted); display: none;}
-        
         .section-title { margin-top: 10px; margin-bottom: 20px; font-size: 22px; font-weight: 800; color: white; border-bottom: 2px solid var(--border-color); padding-bottom: 10px;}
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
         .card { background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; }
         .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border-color); font-size: 16px; font-weight: 800; }
         table { width: 100%; border-collapse: collapse; }
         th { color: var(--text-muted); font-size: 12px; text-align: left; padding: 12px 15px; border-bottom: 1px solid var(--border-color); }
         td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); font-size: 14px;}
-        .clickable-row { cursor: pointer; transition: 0.2s; }
-        .clickable-row:hover { background-color: rgba(41, 98, 255, 0.1); }
+        .clickable-row { cursor: pointer; transition: 0.2s; } .clickable-row:hover { background-color: rgba(41, 98, 255, 0.1); }
         .pct-green { color: var(--bull-green); font-weight: bold; } .pct-red { color: var(--bear-red); font-weight: bold; }
-        
         .terminal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
         .stock-title { font-size: 32px; font-weight: 900; margin: 0; color: white;} .stock-price { font-size: 26px; font-weight: bold; color: white; }
-        
-        /* 🔥 TIMEFRAME SELECTOR CSS */
         .chart-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center;}
         .timeframe-select { background: var(--bg-dark); color: white; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; outline: none;}
         .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;}
         .indicator-btn.active { background: rgba(41, 98, 255, 0.2); color: var(--accent-blue); border-color: var(--accent-blue); }
-        
         #tv-chart { width: 100%; height: 550px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); }
-        
         .ai-box { background: rgba(41, 98, 255, 0.05); border-left: 4px solid var(--accent-blue); padding: 15px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; line-height: 1.5; color: #a1a1aa;}
         .ai-title { color: white; font-weight: bold; margin-bottom: 5px; font-size: 15px;}
-
-        @media (max-width: 768px) {
-            .grid-container { grid-template-columns: 1fr; }
-            #tv-chart { height: 400px; }
-            .terminal-header { flex-direction: column; align-items: flex-start; }
-            .search-box { max-width: 100%; }
-        }
+        @media (max-width: 768px) { .grid-container { grid-template-columns: 1fr; } #tv-chart { height: 400px; } .terminal-header { flex-direction: column; align-items: flex-start; } }
     </style>
 </head>
 <body>
@@ -67,87 +47,45 @@
     </div>
 
     <div class="container">
-        <div id="loading" class="loading">
-            <h2 id="loading-title">🧠 Fetching Market Data...</h2>
-            <p id="loading-text">Server is syncing live charts. Please wait.</p>
-        </div>
+        <div id="loading" class="loading"><h2 id="loading-title">🧠 Analyzing Markets...</h2><p id="loading-text">Scanning 120+ F&O Stocks for setups.</p></div>
 
         <div id="scanner-view">
-            <h2 class="section-title">🔥 Market Heat</h2>
+            <h2 class="section-title">🔥 F&O Market Heat</h2>
             <div class="grid-container">
-                <div class="card">
-                    <div class="card-header" style="color: var(--bull-green);">🚀 Top Gainers</div>
-                    <table>
-                        <thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead>
-                        <tbody id="gainer-body"></tbody>
-                    </table>
-                </div>
-                <div class="card">
-                    <div class="card-header" style="color: var(--bear-red);">🩸 Top Losers</div>
-                    <table>
-                        <thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead>
-                        <tbody id="loser-body"></tbody>
-                    </table>
-                </div>
+                <div class="card"><div class="card-header" style="color: var(--bull-green);">🚀 Top Gainers</div><table><thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead><tbody id="gainer-body"></tbody></table></div>
+                <div class="card"><div class="card-header" style="color: var(--bear-red);">🩸 Top Losers</div><table><thead><tr><th>SYMBOL</th><th>LTP</th><th>CHANGE</th></tr></thead><tbody id="loser-body"></tbody></table></div>
             </div>
         </div>
 
         <div id="analyzer-view">
             <button class="btn" style="background:var(--card-bg); border:1px solid var(--border-color); margin-bottom: 20px; color:white;" onclick="goHome()">← Back</button>
-            <div class="terminal-header">
-                <div>
-                    <h1 class="stock-title" id="stockName">--</h1>
-                </div>
-                <div class="stock-price" id="stockPrice">₹--</div>
-            </div>
-            
-            <div class="ai-box">
-                <div class="ai-title">🤖 GEMINI QUANT AI</div>
-                <div id="aiText">--</div>
-            </div>
+            <div class="terminal-header"><div><h1 class="stock-title" id="stockName">--</h1></div><div class="stock-price" id="stockPrice">₹--</div></div>
+            <div class="ai-box"><div class="ai-title">🤖 GEMINI QUANT AI</div><div id="aiText">--</div></div>
             
             <div class="chart-controls">
                 <select id="timeframeSelector" class="timeframe-select" onchange="changeTimeframe()">
-                    <option value="5m" selected>5 Minutes</option>
-                    <option value="15m">15 Minutes</option>
-                    <option value="60m">1 Hour</option>
-                    <option value="1d">1 Day</option>
+                    <option value="5m" selected>5 Minutes</option><option value="15m">15 Minutes</option><option value="60m">1 Hour</option><option value="1d">1 Day</option>
                 </select>
-                <button class="indicator-btn active" id="btnSignal" onclick="toggleSignals()">Buy/Sell Signals</button>
+                <button class="indicator-btn active" id="btnSignal" onclick="toggleSignals()">Advanced Sniper Signals</button>
+                <button class="indicator-btn active" id="btnEma" onclick="toggleEMAs()">EMAs (9 & 21)</button>
             </div>
-            
             <div id="tv-chart"></div>
         </div>
     </div>
 
     <script>
         const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
-        let chart = null, candleSeries = null;
-        let currentSymbol = "";
-        let signalMarkers = [];
-        let signalsVisible = true;
+        let chart=null, candleSeries=null, ema9Series=null, ema21Series=null, currentSymbol="";
+        let signalMarkers = [], signalsVisible = true, emasVisible = true;
 
-        function goHome() {
-            document.getElementById('scanner-view').style.display = 'block';
-            document.getElementById('analyzer-view').style.display = 'none';
-            document.getElementById('loading').style.display = 'none';
-            fetchScanner();
-        }
-
+        function goHome() { document.getElementById('scanner-view').style.display='block'; document.getElementById('analyzer-view').style.display='none'; document.getElementById('loading').style.display='none'; fetchScanner(); }
         function handleSearch(e) { if(e.key === 'Enter') triggerSearch(); }
-        
-        function triggerSearch() {
-            let val = document.getElementById('searchInput').value.trim().toUpperCase().replace(/\s/g, '');
-            if(val) openAnalyzer(val);
-        }
-
-        function changeTimeframe() {
-            if(currentSymbol) openAnalyzer(currentSymbol);
-        }
+        function triggerSearch() { let val = document.getElementById('searchInput').value.trim().toUpperCase().replace(/\s/g, ''); if(val) openAnalyzer(val); }
+        function changeTimeframe() { if(currentSymbol) openAnalyzer(currentSymbol); }
 
         async function fetchScanner() {
-            document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3">Fetching live data...</td></tr>`;
-            document.getElementById('loser-body').innerHTML = `<tr><td colspan="3">Fetching live data...</td></tr>`;
+            document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3">Scanning 120+ Stocks...</td></tr>`;
+            document.getElementById('loser-body').innerHTML = `<tr><td colspan="3">Scanning 120+ Stocks...</td></tr>`;
             try {
                 const res = await fetch(`${API_BASE_URL}/swing-scanner`);
                 const text = await res.text();
@@ -158,120 +96,78 @@
                         renderTable('loser-body', json.data.top_losers);
                     }
                 } catch(e) {
-                    document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--accent-blue);">Server waking up... Auto-refreshing in 10s.</td></tr>`;
-                    setTimeout(fetchScanner, 10000); // Auto-retry
+                    document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--accent-blue);">Server waking up...</td></tr>`;
+                    setTimeout(fetchScanner, 10000);
                 }
-            } catch (err) { 
-                document.getElementById('gainer-body').innerHTML = `<tr><td colspan="3" style="color:var(--bear-red);">Network Error. Retrying...</td></tr>`;
-                setTimeout(fetchScanner, 5000);
-            }
+            } catch (err) { setTimeout(fetchScanner, 5000); }
         }
 
         function renderTable(id, data) {
             let html = "";
-            if(data.length === 0) html = `<tr><td colspan='3'>No data found.</td></tr>`;
-            else {
-                data.forEach(item => {
-                    let color = item.Percent > 0 ? "pct-green" : "pct-red";
-                    let sign = item.Percent > 0 ? '+' : '';
-                    html += `<tr class="clickable-row" onclick="openAnalyzer('${item.Symbol}')">
-                        <td style="font-weight:bold; color:white;">${item.Symbol}</td>
-                        <td style="color:var(--text-muted);">₹${item.Price}</td>
-                        <td class="${color}">${sign}${item.Percent}%</td>
-                    </tr>`;
-                });
-            }
+            if(data.length===0) html=`<tr><td colspan='3'>No data found.</td></tr>`;
+            else data.forEach(item => { let color = item.Percent>0 ? "pct-green":"pct-red"; let sign = item.Percent>0 ? '+':''; html += `<tr class="clickable-row" onclick="openAnalyzer('${item.Symbol}')"><td style="font-weight:bold; color:white;">${item.Symbol}</td><td style="color:var(--text-muted);">₹${item.Price}</td><td class="${color}">${sign}${item.Percent}%</td></tr>`; });
             document.getElementById(id).innerHTML = html;
         }
 
         async function openAnalyzer(symbol) {
             currentSymbol = symbol;
             const tf = document.getElementById('timeframeSelector').value;
-            
-            document.getElementById('scanner-view').style.display = 'none';
-            document.getElementById('analyzer-view').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('searchInput').value = ''; 
-
+            document.getElementById('scanner-view').style.display='none'; document.getElementById('analyzer-view').style.display='none'; document.getElementById('loading').style.display='block';
             try {
                 const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(symbol)}/${tf}`);
                 const text = await res.text();
-                
                 try {
                     const json = JSON.parse(text);
                     if(json.status === 'success') {
-                        document.getElementById('loading').style.display = 'none';
-                        document.getElementById('analyzer-view').style.display = 'block';
-                        
-                        document.getElementById('stockName').innerText = json.data.symbol;
-                        document.getElementById('stockPrice').innerText = "₹" + json.data.latest_close;
+                        document.getElementById('loading').style.display='none'; document.getElementById('analyzer-view').style.display='block';
+                        document.getElementById('stockName').innerText = json.data.symbol; document.getElementById('stockPrice').innerText = "₹" + json.data.latest_close;
                         document.getElementById('aiText').innerText = json.data.ai_prediction;
-
-                        renderTradingViewChart(json.data.historical_chart_data);
-                    } else {
-                        document.getElementById('loading').style.display = 'none';
-                        alert("⚠️ Error: " + (json.message || json.detail || "Backend is still updating. Please wait 2 minutes!"));
-                        goHome();
-                    }
-                } catch(e) {
-                    setTimeout(() => openAnalyzer(symbol), 10000); // Wait and retry if server sleeping
-                }
-            } catch (err) {
-                alert("Connection Error.");
-                goHome();
-            }
+                        renderChart(json.data.historical_chart_data);
+                    } else { alert("⚠️ " + json.message); goHome(); }
+                } catch(e) { setTimeout(()=>openAnalyzer(symbol), 8000); }
+            } catch (err) { alert("Connection Error."); goHome(); }
         }
 
-        function renderTradingViewChart(data) {
+        function renderChart(data) {
             const chartDom = document.getElementById('tv-chart');
-            if (chart) { chart.remove(); chart = null; }
+            if(chart) { chart.remove(); chart=null; }
             chartDom.innerHTML = ""; 
             
-            // Remove duplicates
-            const uniqueData = [];
-            const seenDates = new Set();
-            for(let i=0; i<data.length; i++) {
-                if(!seenDates.has(data[i].time)) {
-                    seenDates.add(data[i].time);
-                    uniqueData.push(data[i]);
-                }
-            }
+            const uniqueData = Array.from(new Map(data.map(item => [item.time, item])).values());
 
-            chart = LightweightCharts.createChart(chartDom, { 
-                layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc', }, 
-                grid: { vertLines: { color: '#1f2933' }, horzLines: { color: '#1f2933' }, }, 
-                timeScale: { borderColor: '#2b2b43', timeVisible: true, rightOffset: 5, barSpacing: 8 }, 
-                crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
-            });
+            chart = LightweightCharts.createChart(chartDom, { layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc', }, grid: { vertLines: { color: '#1f2933' }, horzLines: { color: '#1f2933' }, }, timeScale: { borderColor: '#2b2b43', timeVisible: true, rightOffset: 5 }, crosshair: { mode: LightweightCharts.CrosshairMode.Normal }});
             
             candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
             candleSeries.setData(uniqueData);
             
-            // 🔥 GENERATE BUY/SELL MARKERS (SuperTrend Logic)
+            ema9Series = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, title: 'EMA 9' });
+            ema9Series.setData(uniqueData.filter(d => d.ema9 !== null).map(d => ({time: d.time, value: d.ema9})));
+            
+            ema21Series = chart.addLineSeries({ color: '#ff9800', lineWidth: 2, title: 'EMA 21' });
+            ema21Series.setData(uniqueData.filter(d => d.ema21 !== null).map(d => ({time: d.time, value: d.ema21})));
+
+            // 🔥 ADVANCED CONFLUENCE SIGNALS
             signalMarkers = [];
-            for (let i = 1; i < uniqueData.length; i++) {
-                const prev = uniqueData[i - 1];
-                const curr = uniqueData[i];
+            for (let i = 2; i < uniqueData.length; i++) {
+                const curr = uniqueData[i]; const prev = uniqueData[i-1];
                 
-                // Trend changed from Bearish (-1) to Bullish (1) -> BUY
-                if (prev.trend === -1 && curr.trend === 1) {
-                    signalMarkers.push({ time: curr.time, position: 'belowBar', color: '#089981', shape: 'arrowUp', text: 'BUY' });
+                let isEmaBullish = curr.ema9 > curr.ema21; let isEmaBearish = curr.ema9 < curr.ema21;
+                let isRsiBullish = curr.rsi > 50; let isRsiBearish = curr.rsi < 50;
+                
+                // SuperTrend changed AND EMAs aligned AND Momentum is with us = STRONG BUY
+                if (prev.trend === -1 && curr.trend === 1 && isEmaBullish && isRsiBullish) {
+                    signalMarkers.push({ time: curr.time, position: 'belowBar', color: '#089981', shape: 'arrowUp', text: 'STRONG BUY' });
                 }
-                // Trend changed from Bullish (1) to Bearish (-1) -> SELL
-                else if (prev.trend === 1 && curr.trend === -1) {
-                    signalMarkers.push({ time: curr.time, position: 'aboveBar', color: '#f23645', shape: 'arrowDown', text: 'SELL' });
+                else if (prev.trend === 1 && curr.trend === -1 && isEmaBearish && isRsiBearish) {
+                    signalMarkers.push({ time: curr.time, position: 'aboveBar', color: '#f23645', shape: 'arrowDown', text: 'STRONG SELL' });
                 }
             }
-
             if(signalsVisible) candleSeries.setMarkers(signalMarkers);
             chart.timeScale().fitContent();
         }
 
-        function toggleSignals() {
-            signalsVisible = !signalsVisible;
-            document.getElementById('btnSignal').classList.toggle('active', signalsVisible);
-            if(candleSeries) candleSeries.setMarkers(signalsVisible ? signalMarkers : []);
-        }
+        function toggleSignals() { signalsVisible = !signalsVisible; document.getElementById('btnSignal').classList.toggle('active', signalsVisible); if(candleSeries) candleSeries.setMarkers(signalsVisible ? signalMarkers : []); }
+        function toggleEMAs() { emasVisible = !emasVisible; document.getElementById('btnEma').classList.toggle('active', emasVisible); if(ema9Series) ema9Series.applyOptions({visible: emasVisible}); if(ema21Series) ema21Series.applyOptions({visible: emasVisible}); }
 
         fetchScanner();
     </script>
