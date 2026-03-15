@@ -12,7 +12,8 @@
         .logo { font-size: 20px; font-weight: 900; cursor: pointer; color: white; letter-spacing: 1px;}
         .search-box { display: flex; gap: 8px; width: 100%; max-width: 400px;}
         .search-input { flex: 1; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; outline: none; text-transform: uppercase;}
-        .btn { background: var(--accent-blue); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;}
+        .btn { background: var(--accent-blue); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+        .btn:hover { background: #1c4ed8; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         #scanner-view { display: block; } #analyzer-view { display: none; }
         .loading { text-align: center; padding: 80px 20px; font-size: 18px; color: var(--text-muted); display: none;}
@@ -23,14 +24,14 @@
         .stock-pill:hover { border-color: var(--accent-blue); background-color: rgba(41, 98, 255, 0.1); transform: translateY(-2px);}
         
         .terminal-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;}
-        .stock-title { font-size: 32px; font-weight: 900; margin: 0; color: white;} .stock-price { font-size: 26px; font-weight: bold; color: white; }
+        .stock-title { font-size: 32px; font-weight: 900; margin: 0; color: white;} .stock-price { font-size: 26px; font-weight: bold; color: white; transition: color 0.3s; }
         .chart-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; align-items: center;}
         .timeframe-select { background: var(--bg-dark); color: white; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; outline: none;}
         .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;}
         .indicator-btn.active { background: rgba(41, 98, 255, 0.2); color: var(--accent-blue); border-color: var(--accent-blue); }
         #btnAutoAlert.active { background: rgba(242, 54, 69, 0.15); color: #f23645; border-color: #f23645; box-shadow: 0 0 10px rgba(242, 54, 69, 0.3); }
 
-        #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); }
+        #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); position: relative; }
         
         /* CHAT UI CSS */
         .ai-box { background: rgba(41, 98, 255, 0.05); border-left: 4px solid var(--accent-blue); padding: 15px; border-radius: 6px; margin-bottom: 20px;}
@@ -44,6 +45,12 @@
         .chat-input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; outline: none; }
         .chat-btn { background: white; color: black; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         
+        /* 🔥 O.G. TOAST NOTIFICATION SYSTEM */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;}
+        .toast { background: var(--card-bg); border-left: 4px solid var(--bear-red); color: white; padding: 15px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transform: translateX(120%); transition: transform 0.3s ease; font-weight: bold;}
+        .toast.show { transform: translateX(0); }
+        .toast.success { border-left-color: var(--bull-green); }
+
         @media (max-width: 768px) { #tv-chart { height: 400px; } .terminal-header { flex-direction: column; align-items: flex-start; } }
     </style>
 </head>
@@ -57,13 +64,13 @@
     </div>
 
     <div class="container">
-        <div id="loading" class="loading"><h2 id="loading-title">🧠 Analyzing Markets...</h2><p id="loading-text">Loading chart and technicals.</p></div>
+        <div id="loading" class="loading"><h2 id="loading-title">🧠 Analyzing Markets...</h2><p id="loading-text">Fetching Institutional Data...</p></div>
 
         <div id="scanner-view">
             <div class="ai-box">
                 <div class="ai-title">🤖 CHADS MARKET MENTOR (General Chat)</div>
                 <div class="chat-history" id="homeChatHistory">
-                    <div class="chat-msg ai">Hello! I am your trading mentor. Ask me about strategies, indicators, or trading concepts! (Note: I cannot fetch live website data like today's top gainers automatically).</div>
+                    <div class="chat-msg ai">Bhai! Main tera trading mentor hu. Ask me about strategies, indicators, or trading concepts!</div>
                 </div>
                 <div class="chat-input-container">
                     <input type="text" id="homeChatInput" class="chat-input" placeholder="Ask general market questions..." onkeypress="handleHomeChat(event)">
@@ -102,6 +109,8 @@
         </div>
     </div>
 
+    <div id="toast-container"></div>
+
     <script>
         const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
         let chart=null, candleSeries=null, currentSymbol="";
@@ -109,6 +118,17 @@
         let ichiVisible = true, pivotsVisible = true;
         let currentPrice = 0, currentRsi = 0;
         let autoAlertInterval = null, isAutoAlertOn = false;
+
+        // 🔥 O.G. TOAST SYSTEM (Replaces ugly alerts)
+        function showToast(message, type="error") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(()=>toast.remove(), 300); }, 4000);
+        }
 
         function goHome() { 
             if(isAutoAlertOn) toggleAutoAlert(); 
@@ -127,10 +147,9 @@
                     json.data.fno_stocks.forEach(stock => { html += `<div class="stock-pill" onclick="openAnalyzer('${stock}')">${stock}</div>`; });
                     document.getElementById('stock-list').innerHTML = html;
                 }
-            } catch (err) { document.getElementById('stock-list').innerHTML = `<div style="color:var(--bear-red);">Server waking up. Please refresh the page.</div>`; }
+            } catch (err) { document.getElementById('stock-list').innerHTML = `<div style="color:var(--bear-red);">Server waking up. Please refresh the page in 30 seconds.</div>`; }
         }
 
-        // 🔥 NEW: HOME PAGE CHAT LOGIC
         function handleHomeChat(e) { if(e.key === 'Enter') sendHomeChatMessage(); }
         async function sendHomeChatMessage() {
             const input = document.getElementById('homeChatInput');
@@ -138,23 +157,19 @@
             if(!message) return;
             
             input.value = '';
-            
             const history = document.getElementById('homeChatHistory');
             const userDiv = document.createElement('div');
             userDiv.className = 'chat-msg user'; userDiv.innerText = message;
-            history.appendChild(userDiv);
-            history.scrollTop = history.scrollHeight;
+            history.appendChild(userDiv); history.scrollTop = history.scrollHeight;
 
             const loadingId = 'loading-home-' + Date.now();
             const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'chat-msg ai'; loadingDiv.id = loadingId; loadingDiv.innerText = "Thinking...";
-            history.appendChild(loadingDiv);
-            history.scrollTop = history.scrollHeight;
+            loadingDiv.className = 'chat-msg ai'; loadingDiv.id = loadingId; loadingDiv.innerText = "Processing...";
+            history.appendChild(loadingDiv); history.scrollTop = history.scrollHeight;
 
             try {
                 const res = await fetch(`${API_BASE_URL}/chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ is_home: true, message: message, symbol: "General", timeframe: "", price: 0, rsi: 0 })
                 });
                 const json = await res.json();
@@ -163,15 +178,10 @@
                 const aiDiv = document.createElement('div');
                 aiDiv.className = 'chat-msg ai';
                 aiDiv.innerText = json.status === 'success' ? json.reply : "⚠️ Error: " + json.message;
-                history.appendChild(aiDiv);
-                history.scrollTop = history.scrollHeight;
-            } catch (e) { 
-                document.getElementById(loadingId).remove(); 
-                const errDiv = document.createElement('div'); errDiv.className = 'chat-msg ai'; errDiv.innerText = "⚠️ Network Error."; history.appendChild(errDiv);
-            }
+                history.appendChild(aiDiv); history.scrollTop = history.scrollHeight;
+            } catch (e) { document.getElementById(loadingId).remove(); showToast("Network Error connecting to AI."); }
         }
 
-        // ANALYZER LOGIC
         async function openAnalyzer(symbol) {
             currentSymbol = symbol;
             const tf = document.getElementById('timeframeSelector').value;
@@ -187,8 +197,8 @@
                     currentPrice = json.data.latest_close; currentRsi = json.data.historical_chart_data[json.data.historical_chart_data.length - 1].rsi;
                     addChatMessage(json.data.ai_prediction, 'ai');
                     renderChart(json.data.historical_chart_data);
-                } else { alert("⚠️ Error: " + json.message); goHome(); }
-            } catch (err) { alert("⚠️ Server waking up. Please try again."); goHome(); }
+                } else { showToast("⚠️ Error: " + json.message); goHome(); }
+            } catch (err) { showToast("⚠️ Server taking time. Retrying..."); goHome(); }
         }
 
         function handleChat(e) { if(e.key === 'Enter') sendChatMessage(); }
@@ -198,8 +208,7 @@
             msgDiv.className = `chat-msg ${sender}`;
             if(isAlert) msgDiv.classList.add('alert');
             msgDiv.innerText = text;
-            history.appendChild(msgDiv);
-            history.scrollTop = history.scrollHeight;
+            history.appendChild(msgDiv); history.scrollTop = history.scrollHeight;
         }
 
         async function sendChatMessage(customMsg = null, isSilent = false) {
@@ -214,7 +223,7 @@
             
             if(!isSilent) {
                 const loadingDiv = document.createElement('div');
-                loadingDiv.className = 'chat-msg ai'; loadingDiv.id = loadingId; loadingDiv.innerText = "Thinking...";
+                loadingDiv.className = 'chat-msg ai'; loadingDiv.id = loadingId; loadingDiv.innerText = "Processing...";
                 history.appendChild(loadingDiv); history.scrollTop = history.scrollHeight;
             }
 
@@ -227,7 +236,7 @@
                 if(!isSilent) document.getElementById(loadingId).remove();
                 if(json.status === 'success') { addChatMessage(isSilent ? "🚨 LIVE UPDATE: " + json.reply : json.reply, 'ai', isSilent); } 
                 else if(!isSilent) { addChatMessage("⚠️ Error: " + json.message, 'ai'); }
-            } catch (e) { if(!isSilent) { document.getElementById(loadingId).remove(); addChatMessage("⚠️ Network Error.", 'ai'); } }
+            } catch (e) { if(!isSilent) { document.getElementById(loadingId).remove(); showToast("Network Error."); } }
         }
 
         function toggleAutoAlert() {
@@ -235,11 +244,11 @@
             const btn = document.getElementById('btnAutoAlert');
             if(isAutoAlertOn) {
                 btn.classList.add('active'); btn.innerText = "🚨 Auto AI Alerts: ON";
-                addChatMessage("🔔 Auto-Alerts activated. Monitoring live chart every 3 minutes.", 'ai');
+                addChatMessage("🔔 Auto-Alerts ON. Scanning chart every 3 mins...", 'ai');
                 autoAlertInterval = setInterval(runSilentAnalysis, 180000);
             } else {
                 btn.classList.remove('active'); btn.innerText = "🚨 Auto AI Alerts: OFF";
-                addChatMessage("🔕 Auto-Alerts disabled.", 'ai');
+                addChatMessage("🔕 Auto-Alerts OFF.", 'ai');
                 clearInterval(autoAlertInterval);
             }
         }
@@ -251,10 +260,16 @@
                 const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(currentSymbol)}/${tf}`);
                 const json = await res.json();
                 if(json.status === 'success') {
+                    // Update price color flash if changed
+                    const priceEl = document.getElementById('stockPrice');
+                    if(json.data.latest_close > currentPrice) { priceEl.style.color = 'var(--bull-green)'; }
+                    else if (json.data.latest_close < currentPrice) { priceEl.style.color = 'var(--bear-red)'; }
+                    setTimeout(()=> priceEl.style.color = 'white', 2000); // reset color
+
                     currentPrice = json.data.latest_close; currentRsi = json.data.historical_chart_data[json.data.historical_chart_data.length - 1].rsi;
-                    document.getElementById('stockPrice').innerText = "₹" + currentPrice;
+                    priceEl.innerText = "₹" + currentPrice;
                     updateChartData(json.data.historical_chart_data);
-                    const silentPrompt = `System Check: The price is ₹${currentPrice} and RSI is ${currentRsi}. Analyze the Ichimoku and Pivots. Is there a breakout, breakdown, or trend shift happening right now?`;
+                    const silentPrompt = `Price moved to ₹${currentPrice}. Check Ichimoku/Pivots for updates. Reply direct in Hinglish.`;
                     sendChatMessage(silentPrompt, true);
                 }
             } catch (err) {}
@@ -273,7 +288,7 @@
 
         function renderChart(data) {
             const chartDom = document.getElementById('tv-chart');
-            if(chart) { chart.remove(); chart=null; }
+            if(chart) { chart.remove(); chart=null; } // Clean up old memory
             chartDom.innerHTML = ""; 
             const uniqueData = Array.from(new Map(data.map(item => [item.time, item])).values());
             chart = LightweightCharts.createChart(chartDom, { layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc', }, grid: { vertLines: { color: '#1f2933' }, horzLines: { color: '#1f2933' }, }, timeScale: { borderColor: '#2b2b43', timeVisible: true, rightOffset: 5 }, crosshair: { mode: LightweightCharts.CrosshairMode.Normal }});
