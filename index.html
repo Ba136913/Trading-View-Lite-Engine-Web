@@ -33,7 +33,6 @@
 
         #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); position: relative; }
         
-        /* CHAT UI CSS */
         .ai-box { background: rgba(41, 98, 255, 0.05); border-left: 4px solid var(--accent-blue); padding: 15px; border-radius: 6px; margin-bottom: 20px;}
         .ai-title { color: white; font-weight: bold; margin-bottom: 10px; font-size: 15px; display: flex; align-items: center; justify-content: space-between;}
         .chat-history { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; padding-right: 5px;}
@@ -45,7 +44,6 @@
         .chat-input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; outline: none; }
         .chat-btn { background: white; color: black; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         
-        /* 🔥 O.G. TOAST NOTIFICATION SYSTEM */
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;}
         .toast { background: var(--card-bg); border-left: 4px solid var(--bear-red); color: white; padding: 15px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transform: translateX(120%); transition: transform 0.3s ease; font-weight: bold;}
         .toast.show { transform: translateX(0); }
@@ -103,6 +101,7 @@
                 </select>
                 <button class="indicator-btn active" id="btnIchimoku" onclick="toggleIchimoku()">Ichimoku Cloud</button>
                 <button class="indicator-btn active" id="btnPivots" onclick="togglePivots()">Pivots (Traditional 15)</button>
+                <button class="indicator-btn active" id="btnSMC" onclick="toggleSMC()">Smart Money (BOS/CHoCH)</button>
                 <button class="indicator-btn" id="btnAutoAlert" onclick="toggleAutoAlert()" style="margin-left: auto;">🚨 Auto AI Alerts: OFF</button>
             </div>
             <div id="tv-chart"></div>
@@ -115,11 +114,11 @@
         const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
         let chart=null, candleSeries=null, currentSymbol="";
         let tenkanSeries=null, kijunSeries=null, spanASeries=null, spanBSeries=null, chikouSeries=null, pivotLines = [];
-        let ichiVisible = true, pivotsVisible = true;
+        let ichiVisible = true, pivotsVisible = true, smcVisible = true; // Added SMC State
+        let smcMarkers = []; // Array to hold markers
         let currentPrice = 0, currentRsi = 0;
         let autoAlertInterval = null, isAutoAlertOn = false;
 
-        // 🔥 O.G. TOAST SYSTEM (Replaces ugly alerts)
         function showToast(message, type="error") {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -260,16 +259,16 @@
                 const res = await fetch(`${API_BASE_URL}/analyze/${encodeURIComponent(currentSymbol)}/${tf}`);
                 const json = await res.json();
                 if(json.status === 'success') {
-                    // Update price color flash if changed
                     const priceEl = document.getElementById('stockPrice');
                     if(json.data.latest_close > currentPrice) { priceEl.style.color = 'var(--bull-green)'; }
                     else if (json.data.latest_close < currentPrice) { priceEl.style.color = 'var(--bear-red)'; }
-                    setTimeout(()=> priceEl.style.color = 'white', 2000); // reset color
+                    setTimeout(()=> priceEl.style.color = 'white', 2000);
 
                     currentPrice = json.data.latest_close; currentRsi = json.data.historical_chart_data[json.data.historical_chart_data.length - 1].rsi;
                     priceEl.innerText = "₹" + currentPrice;
                     updateChartData(json.data.historical_chart_data);
-                    const silentPrompt = `Price moved to ₹${currentPrice}. Check Ichimoku/Pivots for updates. Reply direct in Hinglish.`;
+                    
+                    const silentPrompt = `Price moved to ₹${currentPrice}. Check SMC Breakouts, Ichimoku, or Pivots for updates. Reply direct in Hinglish.`;
                     sendChatMessage(silentPrompt, true);
                 }
             } catch (err) {}
@@ -284,23 +283,43 @@
             if(spanASeries) spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
             if(spanBSeries) spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
             if(chikouSeries) chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
+            
+            // Re-apply markers if visible
+            if(smcVisible) applySMCMarkers(uniqueData);
+        }
+
+        function applySMCMarkers(data) {
+            smcMarkers = [];
+            data.forEach(d => {
+                if(d.smc_bull === 1) {
+                    smcMarkers.push({ time: d.time, position: 'belowBar', color: '#089981', shape: 'arrowUp', text: 'BOS/CHoCH' });
+                } else if(d.smc_bear === -1) {
+                    smcMarkers.push({ time: d.time, position: 'aboveBar', color: '#f23645', shape: 'arrowDown', text: 'BOS/CHoCH' });
+                }
+            });
+            candleSeries.setMarkers(smcMarkers);
         }
 
         function renderChart(data) {
             const chartDom = document.getElementById('tv-chart');
-            if(chart) { chart.remove(); chart=null; } // Clean up old memory
+            if(chart) { chart.remove(); chart=null; } 
             chartDom.innerHTML = ""; 
             const uniqueData = Array.from(new Map(data.map(item => [item.time, item])).values());
             chart = LightweightCharts.createChart(chartDom, { layout: { background: { type: 'solid', color: '#131722' }, textColor: '#d1d4dc', }, grid: { vertLines: { color: '#1f2933' }, horzLines: { color: '#1f2933' }, }, timeScale: { borderColor: '#2b2b43', timeVisible: true, rightOffset: 5 }, crosshair: { mode: LightweightCharts.CrosshairMode.Normal }});
             candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
             candleSeries.setData(uniqueData);
             
+            // Ichimoku Lines
             tenkanSeries = chart.addLineSeries({ color: '#f23645', lineWidth: 1, title: 'Tenkan', visible: ichiVisible }); tenkanSeries.setData(uniqueData.filter(d => d.tenkan !== null).map(d => ({time: d.time, value: d.tenkan})));
             kijunSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 1, title: 'Kijun', visible: ichiVisible }); kijunSeries.setData(uniqueData.filter(d => d.kijun !== null).map(d => ({time: d.time, value: d.kijun})));
             spanASeries = chart.addLineSeries({ color: '#ffeb3b', lineWidth: 1, title: 'Span A', visible: ichiVisible }); spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
             spanBSeries = chart.addLineSeries({ color: '#089981', lineWidth: 1, title: 'Span B', visible: ichiVisible }); spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
             chikouSeries = chart.addLineSeries({ color: '#ffffff', lineWidth: 1, lineStyle: 2, title: 'Chikou', visible: ichiVisible }); chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
 
+            // SMC Markers
+            if(smcVisible) applySMCMarkers(uniqueData);
+
+            // Pivot Lines
             const pivotLevels = [ { key: 'p', title: 'P' }, { key: 'r1', title: 'R1' }, { key: 'r2', title: 'R2' }, { key: 'r3', title: 'R3' }, { key: 'r4', title: 'R4' }, { key: 'r5', title: 'R5' }, { key: 's1', title: 'S1' }, { key: 's2', title: 'S2' }, { key: 's3', title: 'S3' }, { key: 's4', title: 'S4' }, { key: 's5', title: 'S5' } ];
             pivotLines = [];
             const groupedByDay = {};
@@ -319,8 +338,14 @@
             chart.timeScale().fitContent();
         }
 
+        // 🔥 Toggle Logic Update
         function toggleIchimoku() { ichiVisible = !ichiVisible; document.getElementById('btnIchimoku').classList.toggle('active', ichiVisible); if(tenkanSeries) tenkanSeries.applyOptions({visible: ichiVisible}); if(kijunSeries) kijunSeries.applyOptions({visible: ichiVisible}); if(spanASeries) spanASeries.applyOptions({visible: ichiVisible}); if(spanBSeries) spanBSeries.applyOptions({visible: ichiVisible}); if(chikouSeries) chikouSeries.applyOptions({visible: ichiVisible}); }
         function togglePivots() { pivotsVisible = !pivotsVisible; document.getElementById('btnPivots').classList.toggle('active', pivotsVisible); pivotLines.forEach(line => line.applyOptions({visible: pivotsVisible})); }
+        function toggleSMC() { 
+            smcVisible = !smcVisible; 
+            document.getElementById('btnSMC').classList.toggle('active', smcVisible); 
+            if(candleSeries) candleSeries.setMarkers(smcVisible ? smcMarkers : []); 
+        }
 
         fetchStocks();
     </script>
