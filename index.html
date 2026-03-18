@@ -29,6 +29,10 @@
         .timeframe-select { background: var(--bg-dark); color: white; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; outline: none;}
         .indicator-btn { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s;}
         .indicator-btn.active { background: rgba(41, 98, 255, 0.2); color: var(--accent-blue); border-color: var(--accent-blue); }
+        
+        /* 🔥 New Custom Styles */
+        #btnMTF { background: rgba(8, 153, 129, 0.15); color: #089981; border-color: #089981; }
+        #btnMTF:hover { background: rgba(8, 153, 129, 0.3); }
         #btnAutoAlert.active { background: rgba(242, 54, 69, 0.15); color: #f23645; border-color: #f23645; box-shadow: 0 0 10px rgba(242, 54, 69, 0.3); }
 
         #tv-chart { width: 100%; height: 500px; background-color: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); position: relative; }
@@ -40,6 +44,7 @@
         .chat-msg.ai { background: var(--card-bg); color: #d1d4dc; border: 1px solid var(--border-color); align-self: flex-start;}
         .chat-msg.user { background: var(--accent-blue); color: white; align-self: flex-end;}
         .chat-msg.alert { background: rgba(242, 54, 69, 0.1); border-left: 3px solid #f23645; color: white; align-self: flex-start; }
+        .chat-msg.mtf { background: rgba(8, 153, 129, 0.1); border-left: 3px solid #089981; font-family: monospace;}
         .chat-input-container { display: flex; gap: 8px; }
         .chat-input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-dark); color: white; outline: none; }
         .chat-btn { background: white; color: black; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
@@ -90,7 +95,7 @@
                 <div class="ai-title">🤖 CHADS AI ENGINE (Stock Analyzer)</div>
                 <div class="chat-history" id="chatHistory"></div>
                 <div class="chat-input-container">
-                    <input type="text" id="chatInput" class="chat-input" placeholder="Ask AI about this stock, strategy, or targets..." onkeypress="handleChat(event)">
+                    <input type="text" id="chatInput" class="chat-input" placeholder="Ask AI about this stock, strategy, or SMC targets..." onkeypress="handleChat(event)">
                     <button class="chat-btn" onclick="sendChatMessage()">Send</button>
                 </div>
             </div>
@@ -100,8 +105,11 @@
                     <option value="5m" selected>5 Minutes</option><option value="15m">15 Minutes</option><option value="60m">1 Hour</option><option value="1d">1 Day</option>
                 </select>
                 <button class="indicator-btn active" id="btnIchimoku" onclick="toggleIchimoku()">Ichimoku Cloud</button>
-                <button class="indicator-btn active" id="btnPivots" onclick="togglePivots()">Pivots (Traditional 15)</button>
-                <button class="indicator-btn active" id="btnSMC" onclick="toggleSMC()">Smart Money (BOS/CHoCH)</button>
+                <button class="indicator-btn active" id="btnPivots" onclick="togglePivots()">Pivots</button>
+                <button class="indicator-btn active" id="btnSMC" onclick="toggleSMC()">Smart Money</button>
+                
+                <button class="indicator-btn" id="btnMTF" onclick="runMTFScan()">🔍 MTF Confluence Scan</button>
+                
                 <button class="indicator-btn" id="btnAutoAlert" onclick="toggleAutoAlert()" style="margin-left: auto;">🚨 Auto AI Alerts: OFF</button>
             </div>
             <div id="tv-chart"></div>
@@ -114,8 +122,8 @@
         const API_BASE_URL = "https://trading-view-lite-engine.onrender.com/api"; 
         let chart=null, candleSeries=null, currentSymbol="";
         let tenkanSeries=null, kijunSeries=null, spanASeries=null, spanBSeries=null, chikouSeries=null, pivotLines = [];
-        let ichiVisible = true, pivotsVisible = true, smcVisible = true; // Added SMC State
-        let smcMarkers = []; // Array to hold markers
+        let ichiVisible = true, pivotsVisible = true, smcVisible = true; 
+        let smcMarkers = []; 
         let currentPrice = 0, currentRsi = 0;
         let autoAlertInterval = null, isAutoAlertOn = false;
 
@@ -201,16 +209,16 @@
         }
 
         function handleChat(e) { if(e.key === 'Enter') sendChatMessage(); }
-        function addChatMessage(text, sender, isAlert = false) {
+        function addChatMessage(text, sender, customClass = '') {
             const history = document.getElementById('chatHistory');
             const msgDiv = document.createElement('div');
             msgDiv.className = `chat-msg ${sender}`;
-            if(isAlert) msgDiv.classList.add('alert');
+            if(customClass) msgDiv.classList.add(customClass);
             msgDiv.innerText = text;
             history.appendChild(msgDiv); history.scrollTop = history.scrollHeight;
         }
 
-        async function sendChatMessage(customMsg = null, isSilent = false) {
+        async function sendChatMessage(customMsg = null, isSilent = false, isAlert = false) {
             const input = document.getElementById('chatInput');
             const message = customMsg || input.value.trim();
             if(!message) return;
@@ -233,9 +241,36 @@
                 });
                 const json = await res.json();
                 if(!isSilent) document.getElementById(loadingId).remove();
-                if(json.status === 'success') { addChatMessage(isSilent ? "🚨 LIVE UPDATE: " + json.reply : json.reply, 'ai', isSilent); } 
+                if(json.status === 'success') { addChatMessage(isAlert ? "🚨 LIVE UPDATE: " + json.reply : json.reply, 'ai', isAlert ? 'alert' : ''); } 
                 else if(!isSilent) { addChatMessage("⚠️ Error: " + json.message, 'ai'); }
             } catch (e) { if(!isSilent) { document.getElementById(loadingId).remove(); showToast("Network Error."); } }
+        }
+
+        // 🔥 NEW: MTF SCANNER FUNCTION
+        async function runMTFScan() {
+            if(!currentSymbol) return;
+            showToast("Running MTF Scan across 5m, 15m, 1H...", "success");
+            try {
+                const res = await fetch(`${API_BASE_URL}/mtf/${encodeURIComponent(currentSymbol)}`);
+                const json = await res.json();
+                if(json.status === 'success') {
+                    const d = json.data;
+                    const report = `🔍 MTF CONFLUENCE REPORT:\n\n` +
+                                   `[5 Min]  Trend: ${d['5m'].trend} | RSI: ${d['5m'].rsi}\n` +
+                                   `[15 Min] Trend: ${d['15m'].trend} | RSI: ${d['15m'].rsi}\n` +
+                                   `[1 Hour] Trend: ${d['60m'].trend} | RSI: ${d['60m'].rsi}`;
+                    
+                    addChatMessage(report, 'ai', 'mtf'); // Show report box
+                    
+                    // Trigger AI to give verdict based on MTF
+                    const aiPrompt = `I ran an MTF Scan for ${currentSymbol}. 5m is ${d['5m'].trend}, 15m is ${d['15m'].trend}, 1H is ${d['60m'].trend}. Give me a 2-line trade verdict based on this confluence.`;
+                    sendChatMessage(aiPrompt, true, false); 
+                } else {
+                    showToast("⚠️ Scan failed: " + json.message);
+                }
+            } catch(e) {
+                showToast("⚠️ Network error during MTF Scan.");
+            }
         }
 
         function toggleAutoAlert() {
@@ -269,7 +304,7 @@
                     updateChartData(json.data.historical_chart_data);
                     
                     const silentPrompt = `Price moved to ₹${currentPrice}. Check SMC Breakouts, Ichimoku, or Pivots for updates. Reply direct in Hinglish.`;
-                    sendChatMessage(silentPrompt, true);
+                    sendChatMessage(silentPrompt, true, true);
                 }
             } catch (err) {}
         }
@@ -283,8 +318,6 @@
             if(spanASeries) spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
             if(spanBSeries) spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
             if(chikouSeries) chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
-            
-            // Re-apply markers if visible
             if(smcVisible) applySMCMarkers(uniqueData);
         }
 
@@ -309,17 +342,14 @@
             candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645', });
             candleSeries.setData(uniqueData);
             
-            // Ichimoku Lines
             tenkanSeries = chart.addLineSeries({ color: '#f23645', lineWidth: 1, title: 'Tenkan', visible: ichiVisible }); tenkanSeries.setData(uniqueData.filter(d => d.tenkan !== null).map(d => ({time: d.time, value: d.tenkan})));
             kijunSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 1, title: 'Kijun', visible: ichiVisible }); kijunSeries.setData(uniqueData.filter(d => d.kijun !== null).map(d => ({time: d.time, value: d.kijun})));
             spanASeries = chart.addLineSeries({ color: '#ffeb3b', lineWidth: 1, title: 'Span A', visible: ichiVisible }); spanASeries.setData(uniqueData.filter(d => d.span_a !== null).map(d => ({time: d.time, value: d.span_a})));
             spanBSeries = chart.addLineSeries({ color: '#089981', lineWidth: 1, title: 'Span B', visible: ichiVisible }); spanBSeries.setData(uniqueData.filter(d => d.span_b !== null).map(d => ({time: d.time, value: d.span_b})));
             chikouSeries = chart.addLineSeries({ color: '#ffffff', lineWidth: 1, lineStyle: 2, title: 'Chikou', visible: ichiVisible }); chikouSeries.setData(uniqueData.filter(d => d.chikou !== null).map(d => ({time: d.time, value: d.chikou})));
 
-            // SMC Markers
             if(smcVisible) applySMCMarkers(uniqueData);
 
-            // Pivot Lines
             const pivotLevels = [ { key: 'p', title: 'P' }, { key: 'r1', title: 'R1' }, { key: 'r2', title: 'R2' }, { key: 'r3', title: 'R3' }, { key: 'r4', title: 'R4' }, { key: 'r5', title: 'R5' }, { key: 's1', title: 'S1' }, { key: 's2', title: 'S2' }, { key: 's3', title: 'S3' }, { key: 's4', title: 'S4' }, { key: 's5', title: 'S5' } ];
             pivotLines = [];
             const groupedByDay = {};
@@ -338,14 +368,9 @@
             chart.timeScale().fitContent();
         }
 
-        // 🔥 Toggle Logic Update
         function toggleIchimoku() { ichiVisible = !ichiVisible; document.getElementById('btnIchimoku').classList.toggle('active', ichiVisible); if(tenkanSeries) tenkanSeries.applyOptions({visible: ichiVisible}); if(kijunSeries) kijunSeries.applyOptions({visible: ichiVisible}); if(spanASeries) spanASeries.applyOptions({visible: ichiVisible}); if(spanBSeries) spanBSeries.applyOptions({visible: ichiVisible}); if(chikouSeries) chikouSeries.applyOptions({visible: ichiVisible}); }
         function togglePivots() { pivotsVisible = !pivotsVisible; document.getElementById('btnPivots').classList.toggle('active', pivotsVisible); pivotLines.forEach(line => line.applyOptions({visible: pivotsVisible})); }
-        function toggleSMC() { 
-            smcVisible = !smcVisible; 
-            document.getElementById('btnSMC').classList.toggle('active', smcVisible); 
-            if(candleSeries) candleSeries.setMarkers(smcVisible ? smcMarkers : []); 
-        }
+        function toggleSMC() { smcVisible = !smcVisible; document.getElementById('btnSMC').classList.toggle('active', smcVisible); if(candleSeries) candleSeries.setMarkers(smcVisible ? smcMarkers : []); }
 
         fetchStocks();
     </script>
